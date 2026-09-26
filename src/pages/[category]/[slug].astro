@@ -1,0 +1,64 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { getCategories, getPosts, postUrl, url, fmtDate } from '../../lib/site';
+
+export async function getStaticPaths() {
+  const categories = await getCategories();
+  const posts = await getPosts();
+  return posts
+    .filter((p) => categories.some((c) => c.slug === p.data.category))
+    .map((p) => {
+      const siblings = posts.filter((s) => s.data.category === p.data.category);
+      const i = siblings.indexOf(p);
+      return {
+        params: { category: p.data.category, slug: p.data.slug },
+        props: {
+          post: p,
+          category: categories.find((c) => c.slug === p.data.category)!,
+          prev: siblings[i - 1],
+          next: siblings[i + 1],
+        },
+      };
+    });
+}
+
+const { post, category, prev, next } = Astro.props;
+const { Content, headings } = await render(post);
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+<Base title={post.data.title} description={post.data.summary || undefined} current={category.slug}>
+  <article>
+    <p class="meta"><a href={url(`/${category.slug}/`)}>{category.name}</a></p>
+    <h1>{post.data.title}</h1>
+    {post.data.summary && <p class="lead">{post.data.summary}</p>}
+    <p class="stamp">
+      {post.data.patch && <span>기준 패치 <b>{post.data.patch}</b></span>}
+      <span>수정일 <b>{fmtDate(post.data.updated)}</b></span>
+    </p>
+
+    {toc.length > 1 && (
+      <nav class="toc" aria-label="목차">
+        <p>목차</p>
+        <ol>
+          {toc.map((h) => <li class={`d${h.depth}`}><a href={`#${h.slug}`}>{h.text}</a></li>)}
+        </ol>
+      </nav>
+    )}
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    {post.data.tags.length > 0 && (
+      <p class="tags">{post.data.tags.map((t) => <span class="tag">{t}</span>)}</p>
+    )}
+
+    {(prev || next) && (
+      <nav class="pager" aria-label="같은 분류의 다른 공략">
+        {prev ? <a href={postUrl(prev)}><small>이전 글</small>{prev.data.title}</a> : <span></span>}
+        {next ? <a class="next" href={postUrl(next)}><small>다음 글</small>{next.data.title}</a> : <span></span>}
+      </nav>
+    )}
+  </article>
+</Base>

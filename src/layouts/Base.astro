@@ -1,0 +1,46 @@
+---
+import '../styles/global.css';
+import { SITE_NAME, SITE_DESC, getCategories, url } from '../lib/site';
+
+interface Props { title?: string; description?: string; current?: string }
+const { title, description = SITE_DESC, current } = Astro.props;
+const categories = await getCategories();
+const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
+---
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{pageTitle}</title>
+  <meta name="description" content={description} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+  <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
+</head>
+<body>
+  <header class="site-head">
+    <div class="wrap">
+      <a class="logo" href={url('/')}>메이플스토리M <span>공략노트</span></a>
+      <nav class="site-nav" aria-label="공략 분류">
+        {categories.map((c) => (
+          <a href={url(`/${c.slug}/`)} aria-current={current === c.slug ? 'page' : undefined}>{c.name}</a>
+        ))}
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <slot />
+  </main>
+  <footer class="site-foot">
+    <div class="wrap">
+      <p>{SITE_NAME}는 팬이 만든 비공식 사이트입니다. 메이플스토리M의 권리는 넥슨에 있습니다.</p>
+      <p><a href={url('/about/')}>사이트 소개</a></p>
+    </div>
+  </footer>
+</body>
+</html>
