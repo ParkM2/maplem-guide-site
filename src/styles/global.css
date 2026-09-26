@@ -76,7 +76,9 @@ p { margin: 0 0 12px; }
 .prose blockquote p:last-child { margin: 0; }
 .prose code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .9em; background: var(--note); padding: 1px 5px; border-radius: 4px; }
 .prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
-.prose th, .prose td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.prose th, .prose td { text-align: left; padding: 8px 10px; border: 1px solid var(--rule); vertical-align: top; }
+.prose th p, .prose td p { margin: 0; }
+.prose th { background: var(--surface-2, #f1f3f5); }
 .prose th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .prose img { display: block; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--rule); }
 .prose a.zoom { display: block; margin: 16px 0; cursor: zoom-in; }

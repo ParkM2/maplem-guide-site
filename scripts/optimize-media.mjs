@@ -1,10 +1,10 @@
-// 빌드 후 dist/media 안의 스크린샷을 가로 1600px 이하로 줄이고 다시 압축합니다.
+// 빌드 후 dist/media (Vercel에서는 .vercel/output/static/media) 안의 스크린샷을 가로 1600px 이하로 줄이고 다시 압축합니다.
 // 파일 이름과 형식은 그대로 두므로 글 안의 링크는 바뀌지 않습니다.
 import { readdir, stat, writeFile } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import sharp from 'sharp';
 
-const dir = new URL('../dist/media/', import.meta.url).pathname;
+const dirs = ['../dist/media/', '../.vercel/output/static/media/'].map((d) => new URL(d, import.meta.url).pathname);
 const MAX_WIDTH = 1600;
 
 async function* files(d) {
@@ -18,7 +18,7 @@ async function* files(d) {
 }
 
 let saved = 0;
-for await (const file of files(dir)) {
+for (const dir of dirs) for await (const file of files(dir)) {
   const ext = extname(file).toLowerCase();
   if (!['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) continue;
   const before = (await stat(file)).size;

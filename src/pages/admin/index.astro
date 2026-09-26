@@ -1,0 +1,162 @@
+---
+import '../../styles/global.css';
+import '../../admin/admin.css';
+import { SITE_NAME } from '../../lib/site';
+---
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <title>글쓰기 · {SITE_NAME}</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" />
+</head>
+<body class="admin">
+  <header class="ad-head">
+    <a class="logo" href="/admin/">메이플스토리M <span>공략노트</span> <small>글쓰기</small></a>
+    <nav id="ad-nav" hidden>
+      <a href="#list">글 목록</a>
+      <a href="#categories">분류 관리</a>
+      <a href="/" target="_blank" rel="noopener">사이트 보기</a>
+      <button type="button" id="logout" class="link">로그아웃</button>
+    </nav>
+  </header>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- 로그인 -->
+  <section id="view-login" class="ad-wrap narrow" hidden>
+    <h1>로그인</h1>
+    <form id="login-form" class="stack">
+      <label for="password">관리자 비밀번호</label>
+      <input id="password" type="password" autocomplete="current-password" required />
+      <button class="primary" type="submit">로그인</button>
+    </form>
+  </section>
+
+  <!-- 설정 전 -->
+  <section id="view-setup" class="ad-wrap narrow" hidden>
+    <h1>설정이 필요해요</h1>
+    <p>Vercel 프로젝트의 환경 변수에 <code>ADMIN_PASSWORD</code>와 <code>GITHUB_TOKEN</code>을 넣고 다시 배포하면 글쓰기를 쓸 수 있어요.</p>
+  </section>
+
+  <!-- 글 목록 -->
+  <section id="view-list" class="ad-wrap" hidden>
+    <div class="row between">
+      <h1>글 목록</h1>
+      <a class="button primary" href="#new">새 글 쓰기</a>
+    </div>
+    <div class="row filters">
+      <label for="filter-cat" class="sr">분류로 거르기</label>
+      <select id="filter-cat"></select>
+    </div>
+    <ul id="post-list" class="ad-list"></ul>
+  </section>
+
+  <!-- 분류 관리 -->
+  <section id="view-categories" class="ad-wrap" hidden>
+    <div class="row between">
+      <h1>분류 관리</h1>
+      <button type="button" class="primary" id="cat-save">저장</button>
+    </div>
+    <p class="hint">위에서부터 메뉴 순서대로 보여요. 주소는 영문 소문자, 숫자, 하이픈(-)만 쓸 수 있어요.</p>
+    <div id="cat-rows" class="cat-rows"></div>
+    <button type="button" id="cat-add">분류 추가</button>
+  </section>
+
+  <!-- 글쓰기 -->
+  <section id="view-editor" class="editor-page" hidden>
+    <div class="ed-top">
+      <a href="#list" class="back">← 목록</a>
+      <span id="ed-state" class="hint"></span>
+      <div class="row">
+        <button type="button" id="ed-delete" class="danger" hidden>삭제</button>
+        <button type="button" id="ed-save" class="primary">저장</button>
+      </div>
+    </div>
+
+    <div class="ed-toolbar" role="toolbar" aria-label="편집 도구">
+      <div class="tb-row tb-insert">
+        <button type="button" data-cmd="image" title="사진"><span class="ic">▣</span>사진</button>
+        <button type="button" data-cmd="quote" title="인용구"><span class="ic">❝</span>인용구</button>
+        <button type="button" data-cmd="hr" title="구분선"><span class="ic">―</span>구분선</button>
+        <button type="button" data-cmd="table" title="표"><span class="ic">▦</span>표</button>
+        <button type="button" data-cmd="link" title="링크"><span class="ic">🔗︎</span>링크</button>
+        <input type="file" id="image-input" accept="image/*" multiple hidden />
+      </div>
+      <div class="tb-row tb-format">
+        <select id="tb-block" title="문단 스타일" aria-label="문단 스타일">
+          <option value="p">본문</option>
+          <option value="h2">소제목</option>
+          <option value="h3">작은 소제목</option>
+        </select>
+        <select id="tb-size" title="글자 크기" aria-label="글자 크기">
+          <option value="">크기</option>
+          <option>11</option><option>13</option><option>15</option><option>16</option><option>19</option>
+          <option>24</option><option>28</option><option>30</option><option>34</option><option>38</option>
+        </select>
+        <span class="sep"></span>
+        <button type="button" data-cmd="bold" title="굵게"><b>B</b></button>
+        <button type="button" data-cmd="italic" title="기울임"><i>I</i></button>
+        <button type="button" data-cmd="underline" title="밑줄"><u>U</u></button>
+        <button type="button" data-cmd="strike" title="취소선"><s>S</s></button>
+        <span class="sep"></span>
+        <div class="pop">
+          <button type="button" data-pop="color" title="글자 색"><span class="swatch-a" id="color-mark">가</span></button>
+          <div class="pop-panel" id="pop-color" hidden></div>
+        </div>
+        <div class="pop">
+          <button type="button" data-pop="bg" title="글자 배경색"><span class="swatch-bg" id="bg-mark">가</span></button>
+          <div class="pop-panel" id="pop-bg" hidden></div>
+        </div>
+        <span class="sep"></span>
+        <button type="button" data-cmd="align-left" title="왼쪽 정렬">≡<small>왼</small></button>
+        <button type="button" data-cmd="align-center" title="가운데 정렬">≡<small>가</small></button>
+        <button type="button" data-cmd="align-right" title="오른쪽 정렬">≡<small>오</small></button>
+        <button type="button" data-cmd="align-justify" title="양쪽 정렬">≡<small>양</small></button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="bullet" title="글머리 목록">•≡</button>
+        <button type="button" data-cmd="ordered" title="번호 목록">1≡</button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="undo" title="실행 취소">↶</button>
+        <button type="button" data-cmd="redo" title="다시 실행">↷</button>
+        <button type="button" data-cmd="clear" title="서식 지우기">서식 지우기</button>
+      </div>
+      <div class="tb-row tb-table" id="tb-table" hidden>
+        <span class="hint">표</span>
+        <button type="button" data-cmd="row-add">줄 추가</button>
+        <button type="button" data-cmd="col-add">칸 추가</button>
+        <button type="button" data-cmd="row-del">줄 삭제</button>
+        <button type="button" data-cmd="col-del">칸 삭제</button>
+        <button type="button" data-cmd="table-del" class="danger-text">표 삭제</button>
+      </div>
+    </div>
+
+    <div class="ed-body">
+      <label for="ed-title" class="sr">제목</label>
+      <input id="ed-title" class="ed-title" placeholder="제목" autocomplete="off" />
+      <details class="ed-meta" id="ed-meta">
+        <summary>글 정보 (분류, 주소, 요약, 기준 패치)</summary>
+        <div class="meta-grid">
+          <label>분류 <select id="m-category"></select></label>
+          <label>주소 <input id="m-slug" placeholder="level-route" pattern="[a-z0-9-]+" autocomplete="off" />
+            <small>영문 소문자, 숫자, - 만. 글 주소 끝부분이 돼요.</small></label>
+          <label class="wide">한 줄 요약 <input id="m-summary" placeholder="목록과 검색 결과에 보여요" /></label>
+          <label>기준 패치 <input id="m-patch" placeholder="2026년 9월 정기 점검" /></label>
+          <label>수정일 <input id="m-updated" type="date" /></label>
+          <label>태그 <input id="m-tags" placeholder="쉼표로 구분: 뉴비, 200이전" /></label>
+          <label>목록 순서 <input id="m-order" type="number" value="100" /><small>작을수록 위</small></label>
+          <label class="check"><input id="m-draft" type="checkbox" /> 임시 저장 (사이트에 안 보임)</label>
+        </div>
+      </details>
+      <div id="editor" class="prose ed-content"></div>
+    </div>
+  </section>
+
+  <script>
+    import '../../admin/app';
+  </script>
+</body>
+</html>
