@@ -1,0 +1,40 @@
+---
+// 머리글 검색창: 입력하면 아래에 바로 결과가 뜨고, Enter를 누르면 검색 결과 페이지로 갑니다.
+import { url } from '../lib/site';
+---
+<form class="site-search" action={url('/search/')} method="get" role="search">
+  <label for="q" class="sr">공략 검색</label>
+  <input id="q" name="q" type="search" placeholder="공략 검색" autocomplete="off" enterkeyhint="search" />
+  <button type="submit" aria-label="검색">⌕</button>
+  <div class="search-drop" hidden></div>
+</form>
+<script>
+  import { search, renderHits } from '../lib/search';
+  const form = document.querySelector<HTMLFormElement>('.site-search')!;
+  const input = form.querySelector<HTMLInputElement>('input')!;
+  const drop = form.querySelector<HTMLElement>('.search-drop')!;
+  let timer = 0;
+  const hide = () => (drop.hidden = true);
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = window.setTimeout(async () => {
+      const q = input.value.trim();
+      if (!q) return hide();
+      const hits = await search(q);
+      drop.innerHTML = hits.length
+        ? renderHits(hits.slice(0, 6), q) +
+          (hits.length > 6 ? `<a class="more" href="/search/?q=${encodeURIComponent(q)}">결과 ${hits.length}개 모두 보기</a>` : '')
+        : `<p class="none">"${q.replace(/</g, '&lt;')}"에 맞는 공략이 없어요.</p>`;
+      drop.hidden = false;
+    }, 120);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hide();
+  });
+  document.addEventListener('click', (e) => {
+    if (!form.contains(e.target as Node)) hide();
+  });
+  input.addEventListener('focus', () => {
+    if (input.value.trim() && drop.innerHTML) drop.hidden = false;
+  });
+</script>

@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="검색">
+  <h1>검색</h1>
+  <form class="search-page-form" action="" method="get" role="search">
+    <label for="sq" class="sr">검색어</label>
+    <input id="sq" name="q" type="search" placeholder="예: 유니온, 링크, 보스" autocomplete="off" />
+    <button type="submit" class="primary-btn">검색</button>
+  </form>
+  <p id="search-count" class="hint"></p>
+  <div id="search-results"></div>
+</Base>
+<script>
+  import { search, renderHits } from '../lib/search';
+  const q = new URLSearchParams(location.search).get('q')?.trim() ?? '';
+  const input = document.querySelector<HTMLInputElement>('#sq')!;
+  input.value = q;
+  if (q) {
+    const hits = await search(q);
+    document.querySelector('#search-count')!.textContent = hits.length ? `"${q}" 검색 결과 ${hits.length}개` : `"${q}"에 맞는 공략이 없어요. 다른 낱말로 찾아보세요.`;
+    document.querySelector('#search-results')!.innerHTML = renderHits(hits, q);
+  } else input.focus();
+</script>
