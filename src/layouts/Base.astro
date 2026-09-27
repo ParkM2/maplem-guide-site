@@ -42,5 +42,38 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
       <p><a href={url('/about/')}>사이트 소개</a></p>
     </div>
   </footer>
+  <script is:inline>
+    // 방문 통계: 이름, IP 같은 개인정보 없이 무작위 번호로만 방문을 셉니다.
+    (function () {
+      try {
+        var api = '/api/seen', now = Date.now();
+        var rid = function () { return (Math.random().toString(36).slice(2) + now.toString(36)).slice(0, 20); };
+        var get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+        var set = function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} };
+        var vid = get('mgs_vid'), nv = !vid;
+        if (!vid) { vid = rid(); set('mgs_vid', vid); }
+        // 30분 넘게 쉬었다 오면 새 방문으로 셉니다.
+        var s = (get('mgs_sid') || '').split('.'), sid = s[0], ns = !sid || now - Number(s[1] || 0) > 30 * 60 * 1000;
+        if (ns) sid = rid();
+        set('mgs_sid', sid + '.' + now);
+        var pid = rid(), shown = now, spent = 0;
+        var send = function (data) {
+          var body = JSON.stringify(data);
+          if (navigator.sendBeacon) navigator.sendBeacon(api, new Blob([body], { type: 'application/json' }));
+          else fetch(api, { method: 'POST', body: body, keepalive: true, headers: { 'content-type': 'application/json' } });
+        };
+        var utm = new URLSearchParams(location.search).get('utm_source');
+        send({ t: 'pv', pid: pid, vid: vid, sid: sid, nv: nv, ns: ns, path: location.pathname, ref: document.referrer, utm: utm });
+        var flush = function () {
+          if (shown) { spent += Date.now() - shown; shown = 0; }
+          if (spent > 500) send({ t: 'dur', pid: pid, dur: Math.round(spent / 1000) });
+        };
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'hidden') flush(); else { shown = Date.now(); set('mgs_sid', sid + '.' + Date.now()); }
+        });
+        addEventListener('pagehide', flush);
+      } catch (e) {}
+    })();
+  </script>
 </body>
 </html>

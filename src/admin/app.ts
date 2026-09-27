@@ -7,6 +7,7 @@ import Image from '@tiptap/extension-image';
 import { TableKit } from '@tiptap/extension-table';
 import { Placeholder } from '@tiptap/extensions';
 import { openImageEditor } from './image-editor';
+import { loadStats } from './stats';
 
 // 사진: 크기(%)와 정렬을 style로 저장해서 사이트에서도 그대로 보이게 합니다.
 const SizedImage = Image.extend({
@@ -68,7 +69,7 @@ type Category = { file?: string; name: string; slug: string; description?: strin
 type PostMeta = { file: string; data: Record<string, any> };
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
-const views = ['loading', 'login', 'setup', 'list', 'categories', 'editor'] as const;
+const views = ['loading', 'login', 'setup', 'list', 'categories', 'stats', 'editor'] as const;
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 let categories: Category[] = [];
@@ -619,6 +620,10 @@ function route() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h === 'new') return openEditor(null);
   if (h.startsWith('edit/')) return openEditor(h.slice(5));
+  if (h === 'stats') {
+    show('stats');
+    return loadStats(api);
+  }
   if (h === 'categories') {
     catDraft = categories.map((c) => ({ ...c }));
     renderCats();

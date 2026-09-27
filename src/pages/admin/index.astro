@@ -19,6 +19,7 @@ import { SITE_NAME } from '../../lib/site';
     <nav id="wr-nav" hidden>
       <a href="#list">글 목록</a>
       <a href="#categories">분류 관리</a>
+      <a href="#stats">방문 통계</a>
       <a href="/" target="_blank" rel="noopener">사이트 보기</a>
       <button type="button" id="logout" class="link">로그아웃</button>
     </nav>
@@ -75,6 +76,20 @@ import { SITE_NAME } from '../../lib/site';
   </section>
 
   <!-- 분류 관리 -->
+  <section id="view-stats" class="wr-wrap wide" hidden>
+    <div class="row between">
+      <h1>방문 통계</h1>
+      <div class="seg" id="st-range" role="group" aria-label="기간">
+        <button type="button" data-r="today">오늘</button>
+        <button type="button" data-r="yesterday">어제</button>
+        <button type="button" data-r="7" class="on">7일</button>
+        <button type="button" data-r="30">30일</button>
+        <button type="button" data-r="90">90일</button>
+      </div>
+    </div>
+    <div id="st-body"><p class="hint">불러오는 중…</p></div>
+  </section>
+
   <section id="view-categories" class="wr-wrap" hidden>
     <div class="row between">
       <h1>분류 관리</h1>
