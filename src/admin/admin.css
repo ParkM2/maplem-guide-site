@@ -24,27 +24,27 @@ body.admin { min-height: 100vh; }
 .row.between { justify-content: space-between; }
 .stack { display: grid; gap: 10px; }
 
-.ad-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px;
+.wr-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px;
   padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--rule); }
-.ad-head .logo { font-weight: 700; text-decoration: none; }
-.ad-head .logo span { color: var(--accent); }
-.ad-head .logo small { font-weight: 400; color: var(--muted); margin-left: 4px; }
-.ad-head nav { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--muted); }
-.ad-head nav a { text-decoration: none; }
+.wr-head .logo { font-weight: 700; text-decoration: none; }
+.wr-head .logo span { color: var(--accent); }
+.wr-head .logo small { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.wr-head nav { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--muted); }
+.wr-head nav a { text-decoration: none; }
 
-.ad-wrap { max-width: 52rem; margin: 0 auto; padding: 28px 20px 64px; }
-.ad-wrap.narrow { max-width: 24rem; }
-.ad-wrap h1 { font-size: 1.5rem; margin: 0; }
+.wr-wrap { max-width: 52rem; margin: 0 auto; padding: 28px 20px 64px; }
+.wr-wrap.narrow { max-width: 24rem; }
+.wr-wrap h1 { font-size: 1.5rem; margin: 0; }
 .filters { margin: 16px 0 4px; }
 .filters select { width: auto; }
 
-.ad-list { list-style: none; padding: 0; margin: 12px 0 0; }
-.ad-list li { border-top: 1px solid var(--rule); }
-.ad-list li:last-child { border-bottom: 1px solid var(--rule); }
-.ad-list a { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 12px 4px; text-decoration: none; }
-.ad-list a:hover { background: var(--note); }
-.ad-list b { font-weight: 600; }
-.ad-list .meta { font-size: 13px; color: var(--muted); }
+.wr-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.wr-list li { border-top: 1px solid var(--rule); }
+.wr-list li:last-child { border-bottom: 1px solid var(--rule); }
+.wr-list a { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 12px 4px; text-decoration: none; }
+.wr-list a:hover { background: var(--note); }
+.wr-list b { font-weight: 600; }
+.wr-list .meta { font-size: 13px; color: var(--muted); }
 .badge { font-size: 12px; padding: 0 6px; border-radius: 4px; background: var(--note); color: var(--muted); margin-left: 6px; }
 
 .cat-rows { display: grid; gap: 8px; margin: 16px 0; }

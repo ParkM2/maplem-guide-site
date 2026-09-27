@@ -23,7 +23,7 @@ let dirty = false;
 // ---------- 공통 ----------
 function show(view: (typeof views)[number]) {
   for (const v of views) $(`#view-${v}`).hidden = v !== view;
-  $('#ad-nav').hidden = view === 'login' || view === 'setup';
+  $('#wr-nav').hidden = view === 'login' || view === 'setup';
 }
 
 let toastTimer = 0;

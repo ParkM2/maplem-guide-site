@@ -14,9 +14,9 @@ import { SITE_NAME } from '../../lib/site';
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" />
 </head>
 <body class="admin">
-  <header class="ad-head">
+  <header class="wr-head">
     <a class="logo" href="/admin/">메이플스토리M <span>공략노트</span> <small>글쓰기</small></a>
-    <nav id="ad-nav" hidden>
+    <nav id="wr-nav" hidden>
       <a href="#list">글 목록</a>
       <a href="#categories">분류 관리</a>
       <a href="/" target="_blank" rel="noopener">사이트 보기</a>
@@ -27,7 +27,7 @@ import { SITE_NAME } from '../../lib/site';
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- 불러오는 중 (편집기 코드가 실행되지 않으면 이유를 보여 줌) -->
-  <section id="view-loading" class="ad-wrap narrow">
+  <section id="view-loading" class="wr-wrap narrow">
     <p id="loading-msg" class="hint">불러오는 중…</p>
   </section>
   <script is:inline>
@@ -46,7 +46,7 @@ import { SITE_NAME } from '../../lib/site';
   </script>
 
   <!-- 로그인 -->
-  <section id="view-login" class="ad-wrap narrow" hidden>
+  <section id="view-login" class="wr-wrap narrow" hidden>
     <h1>로그인</h1>
     <form id="login-form" class="stack">
       <label for="password">관리자 비밀번호</label>
@@ -56,13 +56,13 @@ import { SITE_NAME } from '../../lib/site';
   </section>
 
   <!-- 설정 전 -->
-  <section id="view-setup" class="ad-wrap narrow" hidden>
+  <section id="view-setup" class="wr-wrap narrow" hidden>
     <h1>설정이 필요해요</h1>
     <p>Vercel 프로젝트의 환경 변수에 <code>ADMIN_PASSWORD</code>와 <code>GITHUB_TOKEN</code>을 넣고 다시 배포하면 글쓰기를 쓸 수 있어요.</p>
   </section>
 
   <!-- 글 목록 -->
-  <section id="view-list" class="ad-wrap" hidden>
+  <section id="view-list" class="wr-wrap" hidden>
     <div class="row between">
       <h1>글 목록</h1>
       <a class="button primary" href="#new">새 글 쓰기</a>
@@ -71,11 +71,11 @@ import { SITE_NAME } from '../../lib/site';
       <label for="filter-cat" class="sr">분류로 거르기</label>
       <select id="filter-cat"></select>
     </div>
-    <ul id="post-list" class="ad-list"></ul>
+    <ul id="post-list" class="wr-list"></ul>
   </section>
 
   <!-- 분류 관리 -->
-  <section id="view-categories" class="ad-wrap" hidden>
+  <section id="view-categories" class="wr-wrap" hidden>
     <div class="row between">
       <h1>분류 관리</h1>
       <button type="button" class="primary" id="cat-save">저장</button>
