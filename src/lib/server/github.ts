@@ -3,6 +3,7 @@ export const REPO = { owner: 'ParkM2', repo: 'maplem-guide-site', branch: proces
 export const POSTS_DIR = 'src/content/posts';
 export const CATEGORIES_DIR = 'src/content/categories';
 export const MEDIA_DIR = 'public/media';
+export const ABOUT_FILE = 'src/content/pages/about.md';
 
 const API = `${process.env.GITHUB_API || 'https://api.github.com'}/repos/${REPO.owner}/${REPO.repo}`;
 

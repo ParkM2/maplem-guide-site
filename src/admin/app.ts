@@ -75,7 +75,7 @@ const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000
 let categories: Category[] = [];
 let posts: PostMeta[] = [];
 let editor: Editor | null = null;
-let current: { file: string | null } = { file: null };
+let current: { file: string | null; about?: boolean } = { file: null };
 let dirty = false;
 
 // ---------- 공통 ----------
@@ -288,11 +288,12 @@ const commands: Record<string, () => void> = {
   hr: () => editor!.chain().focus().setHorizontalRule().run(),
   table: () => editor!.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
   link: () => {
+    if (editor!.state.selection.empty && !editor!.isActive('link')) return toast('링크를 걸 글자를 먼저 드래그해서 골라 주세요.', true);
     const prev = editor!.getAttributes('link').href ?? '';
-    const input = window.prompt ? window.prompt('링크 주소 (비우면 링크 해제)', prev) : null;
+    const input = window.prompt ? window.prompt('링크 주소 (웹 주소, 이메일, 전화번호 가능 · 비우면 링크 해제)', prev) : null;
     if (input === null) return;
     if (!input) editor!.chain().focus().unsetLink().run();
-    else editor!.chain().focus().extendMarkRange('link').setLink({ href: /^https?:\/\//.test(input) ? input : `https://${input}` }).run();
+    else editor!.chain().focus().extendMarkRange('link').setLink({ href: linkHref(input) }).run();
   },
   bold: () => editor!.chain().focus().toggleBold().run(),
   italic: () => editor!.chain().focus().toggleItalic().run(),
@@ -479,6 +480,7 @@ async function openEditor(file: string | null) {
   fillCategorySelect();
   const set = (id: string, v: unknown) => ($<HTMLInputElement>(id).value = v == null ? '' : String(v));
   $('#ed-delete').hidden = !file;
+  $('#ed-meta').hidden = false;
   if (!file) {
     const stamp = today().replace(/-/g, '');
     set('#ed-title', '');
@@ -517,6 +519,27 @@ async function openEditor(file: string | null) {
   $<HTMLInputElement>('#ed-title').focus();
 }
 
+// 사이트 소개: 글과 같은 편집기를 쓰고, 글 정보와 삭제 버튼만 숨깁니다.
+async function openAbout() {
+  if (!editor) makeEditor();
+  show('editor');
+  current = { file: null, about: true };
+  $('#ed-delete').hidden = true;
+  $('#ed-meta').hidden = true;
+  $('#ed-state').textContent = '불러오는 중…';
+  editor!.commands.setContent('');
+  try {
+    const { data, body } = await api('/api/about');
+    $<HTMLInputElement>('#ed-title').value = data.title ?? '사이트 소개';
+    editor!.commands.setContent(body || '');
+    $('#ed-state').textContent = '사이트 소개';
+  } catch (err) {
+    $('#ed-state').textContent = '';
+    toast((err as Error).message, true);
+  }
+  dirty = false;
+}
+
 $('#ed-title').addEventListener('input', () => (dirty = true));
 $('#ed-meta').addEventListener('input', () => (dirty = true));
 
@@ -524,9 +547,10 @@ $('#ed-save').addEventListener('click', async () => {
   if (!editor) return;
   const btn = $<HTMLButtonElement>('#ed-save');
   const val = (id: string) => $<HTMLInputElement>(id).value.trim();
-  const slug = val('#m-slug');
+  const about = Boolean(current.about);
+  const slug = about ? 'about' : val('#m-slug');
   if (!val('#ed-title')) return toast('제목을 적어 주세요.', true);
-  if (!/^[a-z0-9-]+$/.test(slug)) {
+  if (!about && !/^[a-z0-9-]+$/.test(slug)) {
     ($('#ed-meta') as HTMLDetailsElement).open = true;
     $<HTMLInputElement>('#m-slug').focus();
     return toast('주소는 영문 소문자, 숫자, 하이픈(-)만 쓸 수 있어요.', true);
@@ -547,6 +571,14 @@ $('#ed-save').addEventListener('click', async () => {
     }
     $('#ed-state').textContent = '저장하는 중…';
     const body = doc.body.innerHTML;
+    if (about) {
+      await api('/api/about', { method: 'POST', body: JSON.stringify({ title: val('#ed-title'), body, images }) });
+      editor.commands.setContent(body);
+      dirty = false;
+      $('#ed-state').textContent = '저장됨';
+      toast('사이트 소개를 저장했어요. 1~2분 뒤 사이트에 반영돼요.');
+      return;
+    }
     const res = await api('/api/posts', {
       method: 'POST',
       body: JSON.stringify({
@@ -615,11 +647,21 @@ window.addEventListener('beforeunload', (e) => {
   if (dirty) e.preventDefault();
 });
 
+// 링크 주소 정리: 이메일은 mailto:, 전화번호는 tel:, 도메인만 적으면 https:// 를 붙입니다.
+function linkHref(raw: string) {
+  const v = raw.trim();
+  if (/^(https?:|mailto:|tel:|sms:|\/|#)/i.test(v)) return v;
+  if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(v)) return `mailto:${v}`;
+  if (/^\+?[\d\s-]{7,}$/.test(v)) return `tel:${v.replace(/[\s-]/g, '')}`;
+  return `https://${v}`;
+}
+
 // ---------- 화면 이동 ----------
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h === 'new') return openEditor(null);
   if (h.startsWith('edit/')) return openEditor(h.slice(5));
+  if (h === 'about') return openAbout();
   if (h === 'stats') {
     show('stats');
     return loadStats(api);
@@ -633,7 +675,7 @@ function route() {
   show('list');
 }
 window.addEventListener('hashchange', () => {
-  if (dirty && !$('#view-editor').hidden && !location.hash.startsWith('#edit/')) {
+  if (dirty && !$('#view-editor').hidden && !location.hash.startsWith('#edit/') && location.hash !== '#about') {
     // 저장하지 않은 글이 있으면 알려 줍니다 (내용은 그대로 남아 있음)
     toast('저장하지 않은 내용이 있어요. 글쓰기 화면으로 돌아가 저장해 주세요.', true);
   }

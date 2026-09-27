@@ -29,4 +29,12 @@ const posts = defineCollection({
   }),
 });
 
-export const collections = { categories, posts };
+// 고정 페이지 (사이트 소개 등): 웹 편집기의 "사이트 소개" 메뉴에서 수정
+const pages = defineCollection({
+  loader: glob({ base: './src/content/pages', pattern: '**/*.md' }),
+  schema: z.object({
+    title: z.string(),
+  }),
+});
+
+export const collections = { categories, posts, pages };

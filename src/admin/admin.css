@@ -185,3 +185,4 @@ body.admin { min-height: 100vh; }
 .st-note { font-size: 12px; color: var(--muted); margin-top: 24px; line-height: 1.6; }
 .st-setup ol { padding-left: 20px; line-height: 1.8; }
 
+.ed-content a { color: var(--link); text-decoration: underline; }

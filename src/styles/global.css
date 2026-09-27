@@ -4,7 +4,7 @@
   color-scheme: dark;
   --bg: #14171d; --surface: #1b1f27; --ink: #e7e9ee; --muted: #9aa2b1;
   --rule: #2b313c; --accent: #f08a50; --accent-soft: #2e221b; --note: #20252e;
-  --danger: #ff8787;
+  --danger: #ff8787; --link: #4dabf7;
   --w: 46rem;
   font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
@@ -19,6 +19,7 @@
   --accent-soft: #fbece3;
   --note: #eef1f6;
   --danger: #c92a2a;
+  --link: #1c7ed6;
 }
 
 /* 다크/라이트 버튼 */
@@ -98,6 +99,8 @@ p { margin: 0 0 12px; }
 .prose th { background: var(--note); }
 .prose th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .prose img { display: block; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--rule); }
+.prose a:not(.zoom) { color: var(--link); text-decoration: underline; }
+.prose a:not(.zoom):hover { text-decoration-thickness: 2px; }
 .prose a.zoom { display: block; margin: 16px 0; cursor: zoom-in; }
 .prose hr { border: 0; border-top: 1px solid var(--rule); margin: 32px 0; }
 
