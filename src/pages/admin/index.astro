@@ -26,6 +26,25 @@ import { SITE_NAME } from '../../lib/site';
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+  <!-- 불러오는 중 (편집기 코드가 실행되지 않으면 이유를 보여 줌) -->
+  <section id="view-loading" class="ad-wrap narrow">
+    <p id="loading-msg" class="hint">불러오는 중…</p>
+  </section>
+  <script is:inline>
+    (function () {
+      var errs = [];
+      window.addEventListener('error', function (e) { errs.push(e.message || String(e.error || '')); });
+      window.addEventListener('unhandledrejection', function (e) { errs.push(String(e.reason && e.reason.message || e.reason)); });
+      setTimeout(function () {
+        if (window.__adminReady) return;
+        var m = document.getElementById('loading-msg');
+        if (!m) return;
+        m.innerHTML = '글쓰기 화면을 불러오지 못했어요.<br>새로고침하거나 크롬, 사파리, 엣지 같은 기본 브라우저로 열어 주세요. 카카오톡 같은 앱 안의 브라우저에서는 안 될 수 있어요.' +
+          (errs.length ? '<br><br><small>오류: ' + errs.join(' / ').replace(/</g, '&lt;') + '</small>' : '');
+      }, 8000);
+    })();
+  </script>
+
   <!-- 로그인 -->
   <section id="view-login" class="ad-wrap narrow" hidden>
     <h1>로그인</h1>

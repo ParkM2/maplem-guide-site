@@ -11,7 +11,7 @@ type Category = { file?: string; name: string; slug: string; description?: strin
 type PostMeta = { file: string; data: Record<string, any> };
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
-const views = ['login', 'setup', 'list', 'categories', 'editor'] as const;
+const views = ['loading', 'login', 'setup', 'list', 'categories', 'editor'] as const;
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 let categories: Category[] = [];
@@ -515,14 +515,19 @@ window.addEventListener('hashchange', () => {
   route();
 });
 
+(window as any).__adminReady = true;
 (async function boot() {
   try {
-    const s = await (await fetch('/api/login')).json();
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    const s = await (await fetch('/api/login', { signal: ctl.signal, cache: 'no-store' })).json();
+    clearTimeout(timer);
     if (!s.configured) return show('setup');
     if (!s.loggedIn) return show('login');
     await loadAll();
     route();
   } catch {
     show('login');
+    toast('서버 연결이 느려요. 잠시 뒤 새로고침해 주세요.', true);
   }
 })();
