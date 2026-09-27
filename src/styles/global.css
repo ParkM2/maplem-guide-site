@@ -1,5 +1,15 @@
 /* 메이플스토리M 공략노트 공통 스타일 */
 :root {
+  /* 기본은 다크 모드. 라이트는 html[data-theme="light"] 일 때 */
+  color-scheme: dark;
+  --bg: #14171d; --surface: #1b1f27; --ink: #e7e9ee; --muted: #9aa2b1;
+  --rule: #2b313c; --accent: #f08a50; --accent-soft: #2e221b; --note: #20252e;
+  --danger: #ff8787;
+  --w: 46rem;
+  font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
   --bg: #f6f7f9;
   --surface: #ffffff;
   --ink: #1b2130;
@@ -8,16 +18,23 @@
   --accent: #c8581f;
   --accent-soft: #fbece3;
   --note: #eef1f6;
-  --w: 46rem;
-  font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --danger: #c92a2a;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #14171d; --surface: #1b1f27; --ink: #e7e9ee; --muted: #9aa2b1;
-    --rule: #2b313c; --accent: #f08a50; --accent-soft: #2e221b; --note: #20252e;
-  }
-}
+
+/* 다크/라이트 버튼 */
+.theme-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--surface); color: var(--muted); font: inherit; font-size: 13px; line-height: 1.4; cursor: pointer; }
+.theme-btn:hover { color: var(--ink); border-color: var(--muted); }
+.theme-btn .ic { font-size: 14px; }
+
+/* 글에서 고른 검정/흰 글자가 배경에 묻히지 않게 합니다. */
+:root:not([data-theme="light"]) .prose [style*="color: rgb(0, 0, 0)"]:not([style*="background"]),
+:root:not([data-theme="light"]) .prose [style*="color: #000000"]:not([style*="background"]) { color: var(--ink) !important; }
+:root[data-theme="light"] .prose [style*="color: rgb(255, 255, 255)"]:not([style*="background"]),
+:root[data-theme="light"] .prose [style*="color: #ffffff"]:not([style*="background"]) { color: var(--ink) !important; }
+/* 배경색을 칠한 글자는 글자색을 따로 안 골랐으면 어두운 글자로 */
+.prose [style*="background-color"]:not([style^="color"]):not([style*="; color"]) { color: #1b2130; }
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.75; word-break: keep-all; overflow-wrap: anywhere; }
@@ -78,7 +95,7 @@ p { margin: 0 0 12px; }
 .prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
 .prose th, .prose td { text-align: left; padding: 8px 10px; border: 1px solid var(--rule); vertical-align: top; }
 .prose th p, .prose td p { margin: 0; }
-.prose th { background: var(--surface-2, #f1f3f5); }
+.prose th { background: var(--note); }
 .prose th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .prose img { display: block; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--rule); }
 .prose a.zoom { display: block; margin: 16px 0; cursor: zoom-in; }

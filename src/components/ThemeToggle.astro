@@ -1,0 +1,31 @@
+---
+// 다크/라이트 전환 버튼. 고른 값은 이 브라우저에 기억합니다.
+---
+<button type="button" class="theme-btn" data-theme-toggle aria-label="화면 밝기 바꾸기">
+  <span class="ic" aria-hidden="true">☀</span><span class="tx">라이트</span>
+</button>
+<script is:inline>
+  (function () {
+    var btns = document.querySelectorAll('[data-theme-toggle]');
+    var paint = function () {
+      var dark = document.documentElement.getAttribute('data-theme') !== 'light';
+      btns.forEach(function (b) {
+        // 버튼에는 바꿀 모드를 보여 줍니다.
+        b.querySelector('.ic').textContent = dark ? '☀' : '☾';
+        b.querySelector('.tx').textContent = dark ? '라이트' : '다크';
+        b.title = dark ? '라이트 모드로 바꾸기' : '다크 모드로 바꾸기';
+      });
+    };
+    btns.forEach(function (b) {
+      if (b.dataset.bound) return;
+      b.dataset.bound = '1';
+      b.addEventListener('click', function () {
+        var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('mgs_theme', next); } catch (e) {}
+        paint();
+      });
+    });
+    paint();
+  })();
+</script>

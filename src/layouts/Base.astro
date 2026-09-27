@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import { SITE_NAME, SITE_DESC, getCategories, url } from '../lib/site';
+import ThemeHead from '../components/ThemeHead.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
 
 interface Props { title?: string; description?: string; current?: string }
 const { title, description = SITE_DESC, current } = Astro.props;
@@ -11,6 +13,7 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
+  <ThemeHead />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{pageTitle}</title>
   <meta name="description" content={description} />
@@ -31,6 +34,7 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
           <a href={url(`/${c.slug}/`)} aria-current={current === c.slug ? 'page' : undefined}>{c.name}</a>
         ))}
       </nav>
+      <ThemeToggle />
     </div>
   </header>
   <main class="wrap">

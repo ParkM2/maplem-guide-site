@@ -2,11 +2,14 @@
 import '../../styles/global.css';
 import '../../admin/admin.css';
 import { SITE_NAME } from '../../lib/site';
+import ThemeHead from '../../components/ThemeHead.astro';
+import ThemeToggle from '../../components/ThemeToggle.astro';
 ---
 <!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
+  <ThemeHead />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="robots" content="noindex" />
   <title>글쓰기 · {SITE_NAME}</title>
@@ -23,6 +26,7 @@ import { SITE_NAME } from '../../lib/site';
       <a href="/" target="_blank" rel="noopener">사이트 보기</a>
       <button type="button" id="logout" class="link">로그아웃</button>
     </nav>
+    <ThemeToggle />
   </header>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

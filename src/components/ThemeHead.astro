@@ -1,0 +1,10 @@
+---
+// 화면이 그려지기 전에 테마를 정합니다 (기본: 다크). 깜빡임을 막기 위해 head에 둡니다.
+---
+<script is:inline>
+  (function () {
+    var t = 'dark';
+    try { t = localStorage.getItem('mgs_theme') || 'dark'; } catch (e) {}
+    document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+  })();
+</script>

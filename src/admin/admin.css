@@ -10,8 +10,8 @@ body.admin { min-height: 100vh; }
 .admin button:hover, .admin .button:hover { border-color: var(--muted); }
 .admin .primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 .admin .primary:hover { filter: brightness(1.05); border-color: var(--accent); }
-.admin .danger { color: #c92a2a; }
-.admin .danger-text { color: #c92a2a; }
+.admin .danger { color: var(--danger); }
+.admin .danger-text { color: var(--danger); }
 .admin .link { border: 0; background: none; padding: 0; color: inherit; text-decoration: underline; }
 .admin input:not([type=checkbox]), .admin select, .admin textarea {
   padding: 7px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); width: 100%;
@@ -163,9 +163,9 @@ body.admin { min-height: 100vh; }
 .st-cols.small { height: 110px; }
 .st-col { flex: 1; height: 100%; display: flex; align-items: flex-end; position: relative; min-width: 0; }
 .st-col i { display: block; width: 100%; max-width: 28px; margin: 0 auto; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 1px; }
-.st-col:hover i { background: #9c4115; }
+.st-col:hover i { filter: brightness(1.25); }
 .st-col:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap;
-  background: var(--ink); color: #fff; font-size: 12px; padding: 4px 8px; border-radius: 6px; z-index: 5; pointer-events: none; }
+  background: var(--ink); color: var(--bg); font-size: 12px; padding: 4px 8px; border-radius: 6px; z-index: 5; pointer-events: none; }
 .st-col:first-child:hover::after { left: 0; transform: none; }
 .st-col:last-child:hover::after { left: auto; right: 0; transform: none; }
 .st-axis { display: flex; gap: 2px; font-size: 11px; color: var(--muted); margin-top: 4px; }
@@ -181,6 +181,7 @@ body.admin { min-height: 100vh; }
 .st-table td.t { max-width: 0; width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-split { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin: 8px 0; }
 .st-split i:first-child { background: var(--accent); }
-.st-split i:last-child { background: #e8b597; }
+.st-split i:last-child { background: color-mix(in srgb, var(--accent) 40%, var(--surface)); }
 .st-note { font-size: 12px; color: var(--muted); margin-top: 24px; line-height: 1.6; }
 .st-setup ol { padding-left: 20px; line-height: 1.8; }
+
