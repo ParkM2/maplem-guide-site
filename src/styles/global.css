@@ -34,7 +34,7 @@
 :root[data-theme="light"] .prose [style*="color: rgb(255, 255, 255)"]:not([style*="background"]),
 :root[data-theme="light"] .prose [style*="color: #ffffff"]:not([style*="background"]) { color: var(--ink) !important; }
 /* 배경색을 칠한 글자는 글자색을 따로 안 골랐으면 어두운 글자로 */
-.prose [style*="background-color"]:not([style^="color"]):not([style*="; color"]) { color: #1b2130; }
+.prose :not(td):not(th)[style*="background-color"]:not([style^="color"]):not([style*="; color"]) { color: #1b2130; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -93,9 +93,13 @@ p { margin: 0 0 12px; }
 .prose blockquote { margin: 16px 0; padding: 10px 16px; background: var(--note); border-radius: 6px; color: var(--muted); }
 .prose blockquote p:last-child { margin: 0; }
 .prose code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .9em; background: var(--note); padding: 1px 5px; border-radius: 4px; }
-.prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+.prose .tbl-scroll { overflow-x: auto; margin: 12px 0; }
+.prose table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+.prose .tbl-scroll table { margin: 0; }
 .prose th, .prose td { text-align: left; padding: 8px 10px; border: 1px solid var(--rule); vertical-align: top; }
 .prose th p, .prose td p { margin: 0; }
+/* 편집기처럼 빈 줄도 한 줄 높이로 */
+.prose p:empty::before { content: "\200b"; }
 .prose th { background: var(--note); }
 .prose th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .prose img { display: block; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--rule); }

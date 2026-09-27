@@ -4,10 +4,31 @@ import StarterKit from '@tiptap/starter-kit';
 import { TextStyle, FontSize, Color, BackgroundColor } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
-import { TableKit } from '@tiptap/extension-table';
+import { TableKit, TableCell, TableHeader } from '@tiptap/extension-table';
+import { micromark } from 'micromark';
+import { gfm, gfmHtml } from 'micromark-extension-gfm';
 import { Placeholder } from '@tiptap/extensions';
 import { openImageEditor } from './image-editor';
 import { loadStats } from './stats';
+
+// 예전에 마크다운으로 쓴 글은 HTML로 바꿔서 편집기에 넣습니다 (사이트와 같은 모양).
+function toHtml(body: string) {
+  const t = (body || '').trim();
+  if (!t || t.startsWith('<')) return t;
+  return micromark(t, { allowDangerousHtml: true, extensions: [gfm()], htmlExtensions: [gfmHtml()] });
+}
+
+// 표 칸 배경색: style로 저장해서 사이트에서도 그대로 보이게 합니다.
+const cellBg = {
+  backgroundColor: {
+    default: null,
+    parseHTML: (el: HTMLElement) => el.style.backgroundColor || null,
+    renderHTML: (attrs: Record<string, any>) => (attrs.backgroundColor ? { style: `background-color: ${attrs.backgroundColor}` } : {}),
+  },
+};
+const ColorCell = TableCell.extend({ addAttributes() { return { ...this.parent?.(), ...cellBg }; } });
+const ColorHeader = TableHeader.extend({ addAttributes() { return { ...this.parent?.(), ...cellBg }; } });
+const CELL_BGS = ['', 'rgba(250, 82, 82, 0.22)', 'rgba(253, 126, 20, 0.22)', 'rgba(250, 176, 5, 0.25)', 'rgba(64, 192, 87, 0.22)', 'rgba(34, 139, 230, 0.22)', 'rgba(121, 80, 242, 0.22)', 'rgba(134, 142, 150, 0.25)'];
 
 // 사진: 크기(%)와 정렬을 style로 저장해서 사이트에서도 그대로 보이게 합니다.
 const SizedImage = Image.extend({
@@ -254,7 +275,9 @@ function makeEditor() {
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       SizedImage.configure({ allowBase64: true }),
       Spacing,
-      TableKit.configure({ table: { resizable: false } }),
+      TableKit.configure({ table: { resizable: true, cellMinWidth: 48 }, tableCell: false, tableHeader: false }),
+      ColorCell,
+      ColorHeader,
       Placeholder.configure({ placeholder: '본문을 입력하세요. 사진은 끌어다 놓거나 붙여넣어도 돼요.' }),
     ],
     editorProps: {
@@ -272,11 +295,25 @@ function makeEditor() {
         return true;
       },
     },
-    onUpdate: () => (dirty = true),
+    onUpdate: () => {
+      dirty = true;
+      updateToc();
+    },
     onTransaction: updateToolbar,
   });
 
   buildPalette('color', COLORS, (c) => (c ? editor!.chain().focus().setColor(c).run() : editor!.chain().focus().unsetColor().run()));
+  const cellRow = $('#cell-bgs');
+  for (const c of CELL_BGS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sw' + (c ? '' : ' none');
+    b.title = c ? '칸 색' : '색 없음';
+    if (c) b.style.background = c;
+    b.addEventListener('mousedown', (e) => e.preventDefault());
+    b.addEventListener('click', () => editor!.chain().focus().setCellAttribute('backgroundColor', c || null).run());
+    cellRow.append(b);
+  }
   buildPalette('bg', BGS, (c) =>
     c ? editor!.chain().focus().setBackgroundColor(c).run() : editor!.chain().focus().unsetBackgroundColor().run(),
   );
@@ -312,6 +349,10 @@ const commands: Record<string, () => void> = {
   'col-add': () => editor!.chain().focus().addColumnAfter().run(),
   'row-del': () => editor!.chain().focus().deleteRow().run(),
   'col-del': () => editor!.chain().focus().deleteColumn().run(),
+  'row-add-above': () => editor!.chain().focus().addRowBefore().run(),
+  'col-add-left': () => editor!.chain().focus().addColumnBefore().run(),
+  'cell-merge': () => editor!.chain().focus().mergeOrSplit().run(),
+  'head-row': () => editor!.chain().focus().toggleHeaderRow().run(),
   'table-del': () => editor!.chain().focus().deleteTable().run(),
   'img-w25': () => setImage({ width: '25%' }),
   'img-w50': () => setImage({ width: '50%' }),
@@ -376,6 +417,29 @@ document.querySelector('.ed-toolbar')!.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   if (!(e.target as HTMLElement).closest('.pop')) document.querySelectorAll<HTMLElement>('.pop-panel').forEach((p) => (p.hidden = true));
 });
+
+// 사이트처럼 소제목(제목 2, 제목 3)으로 목차를 미리 보여 줍니다. 소제목이 2개 이상일 때만 사이트에 나와요.
+function updateToc() {
+  const box = $('#ed-toc');
+  const heads = [...document.querySelectorAll<HTMLElement>('#editor .ProseMirror > h2, #editor .ProseMirror > h3')].filter((h) => h.textContent!.trim());
+  box.hidden = heads.length < 2;
+  const ol = box.querySelector('ol')!;
+  ol.replaceChildren(
+    ...heads.map((h) => {
+      const li = document.createElement('li');
+      li.className = h.tagName === 'H3' ? 'd3' : 'd2';
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = h.textContent!.trim();
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        h.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      li.append(a);
+      return li;
+    }),
+  );
+}
 
 $<HTMLSelectElement>('#tb-block').addEventListener('change', (e) => {
   const v = (e.target as HTMLSelectElement).value;
@@ -509,13 +573,14 @@ async function openEditor(file: string | null) {
       set('#m-order', data.order ?? 100);
       $<HTMLInputElement>('#m-draft').checked = Boolean(data.draft);
       ($('#ed-meta') as HTMLDetailsElement).open = false;
-      editor!.commands.setContent(body || '');
+      editor!.commands.setContent(toHtml(body));
       $('#ed-state').textContent = '';
     } catch (err) {
       toast((err as Error).message, true);
     }
   }
   dirty = false;
+  updateToc();
   $<HTMLInputElement>('#ed-title').focus();
 }
 
@@ -531,13 +596,14 @@ async function openAbout() {
   try {
     const { data, body } = await api('/api/about');
     $<HTMLInputElement>('#ed-title').value = data.title ?? '사이트 소개';
-    editor!.commands.setContent(body || '');
+    editor!.commands.setContent(toHtml(body));
     $('#ed-state').textContent = '사이트 소개';
   } catch (err) {
     $('#ed-state').textContent = '';
     toast((err as Error).message, true);
   }
   dirty = false;
+  updateToc();
 }
 
 $('#ed-title').addEventListener('input', () => (dirty = true));
@@ -573,10 +639,10 @@ $('#ed-save').addEventListener('click', async () => {
     const body = doc.body.innerHTML;
     if (about) {
       await api('/api/about', { method: 'POST', body: JSON.stringify({ title: val('#ed-title'), body, images }) });
-      editor.commands.setContent(body);
       dirty = false;
-      $('#ed-state').textContent = '저장됨';
+      $('#ed-state').textContent = '';
       toast('사이트 소개를 저장했어요. 1~2분 뒤 사이트에 반영돼요.');
+      location.hash = returnTo;
       return;
     }
     const res = await api('/api/posts', {
@@ -598,15 +664,14 @@ $('#ed-save').addEventListener('click', async () => {
         },
       }),
     });
-    // 올린 사진 주소로 편집기 내용을 맞춰 둡니다.
-    editor.commands.setContent(body);
     current.file = res.file;
     dirty = false;
-    $('#ed-delete').hidden = false;
-    $('#ed-state').textContent = '저장됨';
-    history.replaceState(null, '', `#edit/${encodeURIComponent(res.file)}`);
+    $('#ed-state').textContent = '목록 새로 고치는 중…';
+    await loadAll().catch(() => {});
+    $('#ed-state').textContent = '';
     toast('저장했어요. 1~2분 뒤 사이트에 반영돼요.');
-    loadAll().catch(() => {});
+    // 저장하면 편집기에 들어오기 전 화면으로 돌아갑니다.
+    location.hash = returnTo;
   } catch (err) {
     $('#ed-state').textContent = '';
     toast((err as Error).message, true);
@@ -657,8 +722,11 @@ function linkHref(raw: string) {
 }
 
 // ---------- 화면 이동 ----------
+// 편집기에 들어오기 전 화면 (저장 후 돌아갈 곳)
+let returnTo = '#list';
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
+  if (h !== 'new' && h !== 'about' && !h.startsWith('edit/')) returnTo = `#${h || 'list'}`;
   if (h === 'new') return openEditor(null);
   if (h.startsWith('edit/')) return openEditor(h.slice(5));
   if (h === 'about') return openAbout();
