@@ -37,6 +37,7 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
       <ThemeToggle />
     </div>
   </header>
+  <slot name="hero" />
   <main class="wrap">
     <slot />
   </main>

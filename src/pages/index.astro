@@ -1,26 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
+import HomeMap from '../components/HomeMap.astro';
 import { SITE_NAME, getCategories, getPosts, postUrl, url, fmtDate } from '../lib/site';
 
 const categories = await getCategories();
 const posts = await getPosts();
-const count = (slug: string) => posts.filter((p) => p.data.category === slug).length;
 const recent = [...posts].sort((a, b) => b.data.updated.valueOf() - a.data.updated.valueOf()).slice(0, 5);
 ---
 <Base>
-  <h1>{SITE_NAME}</h1>
-  <p class="lead">필요한 것만 짧게 정리한 메이플스토리M 공략 모음입니다.</p>
-
-  <ul class="cats">
-    {categories.map((c) => (
-      <li>
-        <a class:list={['cat', { off: count(c.slug) === 0 }]} href={url(`/${c.slug}/`)}>
-          <b>{c.name}</b>
-          <span>{count(c.slug) === 0 ? '준비 중' : `공략 ${count(c.slug)}개`}{c.description && ` · ${c.description}`}</span>
-        </a>
-      </li>
-    ))}
-  </ul>
+  <HomeMap slot="hero" categories={categories} />
+  <h1 class="sr">{SITE_NAME}</h1>
 
   {recent.length > 0 && (
     <section>

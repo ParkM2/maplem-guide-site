@@ -114,3 +114,32 @@ p { margin: 0 0 12px; }
 .site-foot { border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
 .site-foot .wrap { padding-block: 20px; }
 .site-foot p { margin: 0 0 4px; }
+
+/* 첫 화면 그림 (PPT 디자인) */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.home-map { max-width: 1280px; margin: 0 auto; padding: 8px 12px 0; }
+.home-map svg { display: block; width: 100%; height: auto; }
+.home-map .pixel { image-rendering: pixelated; }
+.home-map .hl { fill: none; stroke: #ff2b2b; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; opacity: 0; }
+.home-map .hl.show { opacity: 1; }
+.home-map .hl > * { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .45s ease; }
+.home-map .hl.show > * { stroke-dashoffset: 0; }
+.home-map .btn { cursor: pointer; }
+.home-map .btn rect { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; transition: stroke .15s; }
+.home-map .btn text { fill: var(--ink); font-size: 22px; font-weight: 600; text-anchor: middle; dominant-baseline: central; transition: fill .15s; }
+.home-map .btn.on rect, .home-map .btn:focus-visible rect { stroke: #ff2b2b; stroke-width: 3; }
+.home-map .btn.on text { fill: #ff4d4d; }
+.home-map .btn:focus { outline: none; }
+.home-map .map-mobile { display: none; }
+.home-map .map-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 4px 0 8px; }
+.home-map .map-btns a { display: none; padding: 10px 18px; border: 1.5px solid var(--ink); border-radius: 10px; text-decoration: none; font-weight: 600; background: var(--bg); }
+.home-map .map-btns a.extra { display: inline-block; }
+.home-map .map-btns a.on { border-color: #ff2b2b; color: #ff4d4d; }
+@media (prefers-reduced-motion: reduce) { .home-map .hl > * { transition: none; } }
+@media (max-width: 700px) {
+  .home-map { padding: 12px 16px 0; }
+  .home-map .map-full { display: none; }
+  .home-map .map-mobile { display: block; border-radius: 8px; }
+  .home-map .map-btns { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 12px; }
+  .home-map .map-btns a { display: block; text-align: center; padding: 12px 4px; }
+}

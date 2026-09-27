@@ -1,0 +1,96 @@
+---
+// 첫 화면 그림: 분류 버튼에 마우스를 올리면 그림 속 관련 부분에 빨간 선과 원이 나타나고, 누르면 그 분류로 이동합니다.
+// 위치는 jin님의 PPT(1280×720 기준)를 그대로 옮겼습니다: src/data/home-hotspots.json
+import data from '../data/home-hotspots.json';
+import { url } from '../lib/site';
+
+interface Props { categories: { slug: string; name: string }[] }
+const { categories } = Astro.props;
+type Shape = { t: string; cx?: number; cy?: number; rx?: number; ry?: number; rot?: number; pts?: number[][]; d?: string; sw: number };
+const shapes = data.shapes as Record<string, Shape[]>;
+const buttons = data.buttons as Record<string, number[]>;
+const [bw, bh] = data.size;
+const [ix, iy, iw, ih] = data.image;
+const [cx, cy, cw, ch] = data.icon;
+// 그림에 자리가 있는 분류만 그림 위 버튼으로, 나머지(나중에 추가한 분류)는 아래 버튼 줄에 보여 줍니다.
+const onMap = categories.filter((c) => buttons[c.slug]);
+---
+<section class="home-map" aria-label="분류 바로가기">
+  <svg viewBox="0 0 1280 720" class="map-full" role="img" aria-label="메이플스토리M 캐릭터 그림과 분류 버튼">
+    <image href={url('/home/keyart.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" />
+    <image href={url('/home/meso.png')} x={cx} y={cy} width={cw} height={ch} class="pixel" />
+    {onMap.map((c) => (
+      <g class={`hl hl-${c.slug}`} aria-hidden="true">
+        {shapes[c.slug].map((s) =>
+          s.t === 'ellipse' ? (
+            <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} transform={`rotate(${s.rot} ${s.cx} ${s.cy})`} stroke-width={s.sw} pathLength="1" />
+          ) : s.t === 'line' ? (
+            <polyline points={s.pts!.map((p) => p.join(',')).join(' ')} stroke-width={s.sw} pathLength="1" />
+          ) : (
+            <path d={s.d} stroke-width={s.sw} pathLength="1" />
+          ),
+        )}
+      </g>
+    ))}
+    {onMap.map((c) => {
+      const [x, y] = buttons[c.slug];
+      return (
+        <a href={url(`/${c.slug}/`)} class={`btn btn-${c.slug}`} data-slug={c.slug}>
+          <rect x={x} y={y} width={bw} height={bh} rx="12" />
+          <text x={x + bw / 2} y={y + bh / 2}>{c.name}</text>
+        </a>
+      );
+    })}
+  </svg>
+
+  <!-- 휴대폰: 그림을 크게, 버튼은 아래에. 연결 모양은 차례로 돌아가며 보여 줍니다. -->
+  <svg viewBox={`${ix} ${iy} ${iw} ${ih}`} class="map-mobile" aria-hidden="true">
+    <image href={url('/home/keyart.jpg')} x={ix} y={iy} width={iw} height={ih} />
+    <image href={url('/home/meso.png')} x={cx} y={cy} width={cw} height={ch} class="pixel" />
+    {onMap.map((c) => (
+      <g class={`hl hl-${c.slug}`}>
+        {shapes[c.slug].filter((s) => s.t !== 'line').map((s) =>
+          s.t === 'ellipse' ? (
+            <ellipse cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} transform={`rotate(${s.rot} ${s.cx} ${s.cy})`} stroke-width={s.sw} pathLength="1" />
+          ) : (
+            <path d={s.d} stroke-width={s.sw} pathLength="1" />
+          ),
+        )}
+      </g>
+    ))}
+  </svg>
+  <nav class="map-btns" aria-label="분류">
+    {categories.map((c) => (
+      <a href={url(`/${c.slug}/`)} data-slug={c.slug} class:list={{ extra: !buttons[c.slug] }}>{c.name}</a>
+    ))}
+  </nav>
+</section>
+
+<script is:inline>
+  (function () {
+    var root = document.querySelector('.home-map');
+    if (!root) return;
+    var set = function (slug) {
+      root.querySelectorAll('.hl').forEach(function (g) { g.classList.toggle('show', !!slug && g.classList.contains('hl-' + slug)); });
+      root.querySelectorAll('.map-full .btn').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-slug') === slug); });
+      root.querySelectorAll('.map-btns a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-slug') === slug); });
+    };
+    // 마우스·키보드: 버튼에 올리거나 포커스하면 표시
+    root.querySelectorAll('[data-slug]').forEach(function (a) {
+      var s = a.getAttribute('data-slug');
+      a.addEventListener('mouseenter', function () { stop(); set(s); });
+      a.addEventListener('focus', function () { stop(); set(s); });
+      a.addEventListener('mouseleave', function () { set(''); });
+      a.addEventListener('blur', function () { set(''); });
+    });
+    // 휴대폰(마우스 없음): 연결 모양을 차례로 보여 줌
+    var slugs = Array.prototype.map.call(root.querySelectorAll('.map-full .btn'), function (a) { return a.getAttribute('data-slug'); });
+    var timer = null, i = 0;
+    var stop = function () { if (timer) { clearInterval(timer); timer = null; } };
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce && !window.matchMedia('(hover: hover)').matches && slugs.length) {
+      set(slugs[0]);
+      timer = setInterval(function () { i = (i + 1) % slugs.length; set(slugs[i]); }, 2200);
+    }
+  })();
+</script>
