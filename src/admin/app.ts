@@ -1,11 +1,68 @@
 // 글쓰기 화면: 로그인, 글 목록, 편집기, 분류 관리
-import { Editor } from '@tiptap/core';
+import { Editor, Extension, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle, FontSize, Color, BackgroundColor } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import { TableKit } from '@tiptap/extension-table';
 import { Placeholder } from '@tiptap/extensions';
+import { openImageEditor } from './image-editor';
+
+// 사진: 크기(%)와 정렬을 style로 저장해서 사이트에서도 그대로 보이게 합니다.
+const SizedImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: (el) => (el.style.width?.endsWith('%') ? el.style.width : null),
+        renderHTML: () => ({}),
+      },
+      align: { default: null, parseHTML: (el) => el.getAttribute('data-align'), renderHTML: () => ({}) },
+    };
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const { width, align } = node.attrs;
+    let style = width ? `width: ${width};` : '';
+    if (align === 'center') style += ' margin-left: auto; margin-right: auto;';
+    if (align === 'right') style += ' margin-left: auto; margin-right: 0;';
+    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { style: style.trim() || null, 'data-align': align })];
+  },
+});
+
+// 줄 간격, 문단 간격(문단 아래), 글자 간격
+const Spacing = Extension.create({
+  name: 'spacing',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['paragraph', 'heading'],
+        attributes: {
+          lineHeight: {
+            default: null,
+            parseHTML: (el) => el.style.lineHeight || null,
+            renderHTML: (a) => (a.lineHeight ? { style: `line-height: ${a.lineHeight}` } : {}),
+          },
+          spaceAfter: {
+            default: null,
+            parseHTML: (el) => el.style.marginBottom || null,
+            renderHTML: (a) => (a.spaceAfter ? { style: `margin-bottom: ${a.spaceAfter}` } : {}),
+          },
+        },
+      },
+      {
+        types: ['textStyle'],
+        attributes: {
+          letterSpacing: {
+            default: null,
+            parseHTML: (el) => el.style.letterSpacing || null,
+            renderHTML: (a) => (a.letterSpacing ? { style: `letter-spacing: ${a.letterSpacing}` } : {}),
+          },
+        },
+      },
+    ];
+  },
+});
 
 type Category = { file?: string; name: string; slug: string; description?: string; order?: number };
 type PostMeta = { file: string; data: Record<string, any> };
@@ -194,7 +251,8 @@ function makeEditor() {
       Color,
       BackgroundColor,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Image.configure({ allowBase64: true }),
+      SizedImage.configure({ allowBase64: true }),
+      Spacing,
       TableKit.configure({ table: { resizable: false } }),
       Placeholder.configure({ placeholder: '본문을 입력하세요. 사진은 끌어다 놓거나 붙여넣어도 돼요.' }),
     ],
@@ -253,7 +311,49 @@ const commands: Record<string, () => void> = {
   'row-del': () => editor!.chain().focus().deleteRow().run(),
   'col-del': () => editor!.chain().focus().deleteColumn().run(),
   'table-del': () => editor!.chain().focus().deleteTable().run(),
+  'img-w25': () => setImage({ width: '25%' }),
+  'img-w50': () => setImage({ width: '50%' }),
+  'img-w75': () => setImage({ width: '75%' }),
+  'img-w100': () => setImage({ width: null }),
+  'img-left': () => setImage({ align: null }),
+  'img-center': () => setImage({ align: 'center' }),
+  'img-right': () => setImage({ align: 'right' }),
+  'img-alt': () => {
+    const alt = window.prompt('사진 설명 (사진이 안 보일 때와 검색에 쓰여요)', editor!.getAttributes('image').alt ?? '');
+    if (alt !== null) setImage({ alt: alt.trim() || null });
+  },
+  'img-del': () => editor!.chain().focus().deleteSelection().run(),
+  'img-edit': async () => {
+    const { src } = editor!.getAttributes('image');
+    if (!src) return;
+    const pos = editor!.state.selection.from;
+    try {
+      const edited = await openImageEditor(src);
+      if (edited) editor!.chain().focus().setNodeSelection(pos).updateAttributes('image', { src: edited }).run();
+    } catch (err) {
+      toast((err as Error).message, true);
+    }
+  },
 };
+
+function setImage(attrs: Record<string, unknown>) {
+  editor!.chain().focus().updateAttributes('image', attrs).run();
+}
+
+// 줄 간격과 문단 간격은 고른 문단 전체에, 글자 간격은 고른 글자에 적용합니다.
+function setBlock(attrs: Record<string, unknown>) {
+  editor!.chain().focus().updateAttributes('paragraph', attrs).updateAttributes('heading', attrs).run();
+}
+$<HTMLSelectElement>('#sp-line').addEventListener('change', (e) => setBlock({ lineHeight: (e.target as HTMLSelectElement).value || null }));
+$<HTMLSelectElement>('#sp-para').addEventListener('change', (e) => setBlock({ spaceAfter: (e.target as HTMLSelectElement).value || null }));
+$<HTMLSelectElement>('#sp-letter').addEventListener('change', (e) => {
+  const v = (e.target as HTMLSelectElement).value || null;
+  editor!.chain().focus().setMark('textStyle', { letterSpacing: v }).removeEmptyTextStyle().run();
+});
+$<HTMLInputElement>('#img-range').addEventListener('input', (e) => {
+  const v = Number((e.target as HTMLInputElement).value);
+  setImage({ width: v >= 100 ? null : `${v}%` });
+});
 
 // 도구 버튼을 눌러도 본문 선택 영역이 풀리지 않게 합니다.
 document.querySelector('.ed-toolbar')!.addEventListener('mousedown', (e) => {
@@ -304,6 +404,26 @@ function updateToolbar() {
   $('#color-mark').style.setProperty('--sw', editor.getAttributes('textStyle').color || '#e03131');
   $('#bg-mark').style.setProperty('--sw', editor.getAttributes('textStyle').backgroundColor || '#fff3bf');
   $('#tb-table').hidden = !editor.isActive('table');
+  const isImg = editor.isActive('image');
+  $('#tb-image').hidden = !isImg;
+  if (isImg) {
+    const { width, align } = editor.getAttributes('image');
+    const w = width ? parseInt(width, 10) : 100;
+    $<HTMLInputElement>('#img-range').value = String(w);
+    $('#img-size').textContent = `${w}%`;
+    for (const n of [25, 50, 75, 100]) on(`img-w${n}`, w === n);
+    on('img-left', !align);
+    on('img-center', align === 'center');
+    on('img-right', align === 'right');
+  }
+  const block = editor.isActive('heading') ? editor.getAttributes('heading') : editor.getAttributes('paragraph');
+  const pick = (id: string, v: unknown) => {
+    const sel = $<HTMLSelectElement>(id);
+    sel.value = [...sel.options].some((o) => o.value === v) ? String(v) : '';
+  };
+  pick('#sp-line', block.lineHeight ?? '');
+  pick('#sp-para', block.spaceAfter ?? '');
+  pick('#sp-letter', editor.getAttributes('textStyle').letterSpacing ?? '');
 }
 
 // 사진: 가로 1600px 이하 WebP로 줄여서 넣습니다. 저장할 때 서버로 올립니다.

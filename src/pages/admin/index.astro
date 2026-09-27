@@ -135,6 +135,30 @@ import { SITE_NAME } from '../../lib/site';
         <button type="button" data-cmd="align-center" title="가운데 정렬">≡<small>가</small></button>
         <button type="button" data-cmd="align-right" title="오른쪽 정렬">≡<small>오</small></button>
         <button type="button" data-cmd="align-justify" title="양쪽 정렬">≡<small>양</small></button>
+        <div class="pop">
+          <button type="button" data-pop="space" title="줄 간격, 문단 간격, 글자 간격">↕<small>간격</small></button>
+          <div class="pop-panel spacing" id="pop-space" hidden>
+            <label>줄 간격
+              <select id="sp-line">
+                <option value="">기본</option><option value="1">1.0</option><option>1.2</option><option>1.5</option><option>1.8</option>
+                <option value="2">2.0</option><option>2.5</option><option value="3">3.0</option>
+              </select>
+            </label>
+            <label>문단 간격 <small>(아래쪽)</small>
+              <select id="sp-para">
+                <option value="">기본</option><option value="0px">0</option><option value="4px">4</option><option value="8px">8</option>
+                <option value="16px">16</option><option value="24px">24</option><option value="32px">32</option><option value="48px">48</option>
+              </select>
+            </label>
+            <label>글자 간격
+              <select id="sp-letter">
+                <option value="">기본</option><option value="-1px">-1</option><option value="-0.5px">-0.5</option><option value="0.5px">0.5</option>
+                <option value="1px">1</option><option value="2px">2</option><option value="3px">3</option><option value="5px">5</option>
+              </select>
+            </label>
+            <p class="hint">줄·문단 간격은 커서가 있는 문단(여러 문단을 고르면 모두)에, 글자 간격은 고른 글자에 적용돼요.</p>
+          </div>
+        </div>
         <span class="sep"></span>
         <button type="button" data-cmd="bullet" title="글머리 목록">•≡</button>
         <button type="button" data-cmd="ordered" title="번호 목록">1≡</button>
@@ -142,6 +166,23 @@ import { SITE_NAME } from '../../lib/site';
         <button type="button" data-cmd="undo" title="실행 취소">↶</button>
         <button type="button" data-cmd="redo" title="다시 실행">↷</button>
         <button type="button" data-cmd="clear" title="서식 지우기">서식 지우기</button>
+      </div>
+      <div class="tb-row tb-image" id="tb-image" hidden>
+        <span class="hint">사진</span>
+        <button type="button" data-cmd="img-w25">25%</button>
+        <button type="button" data-cmd="img-w50">50%</button>
+        <button type="button" data-cmd="img-w75">75%</button>
+        <button type="button" data-cmd="img-w100">100%</button>
+        <input type="range" id="img-range" min="10" max="100" step="5" value="100" aria-label="사진 크기" title="사진 크기" />
+        <span id="img-size" class="hint">100%</span>
+        <span class="sep"></span>
+        <button type="button" data-cmd="img-left" title="왼쪽">≡<small>왼</small></button>
+        <button type="button" data-cmd="img-center" title="가운데">≡<small>가</small></button>
+        <button type="button" data-cmd="img-right" title="오른쪽">≡<small>오</small></button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="img-edit" class="strong">✎ 사진 편집</button>
+        <button type="button" data-cmd="img-alt">설명 글</button>
+        <button type="button" data-cmd="img-del" class="danger-text">삭제</button>
       </div>
       <div class="tb-row tb-table" id="tb-table" hidden>
         <span class="hint">표</span>
