@@ -767,6 +767,7 @@ window.addEventListener('hashchange', () => {
         expired: '로그인 시간이 지났어요. 비밀번호부터 다시 입력해 주세요.',
         cancel: 'Google 로그인을 취소했어요.',
         fail: 'Google 로그인에 실패했어요. 잠시 뒤 다시 해 주세요.',
+        badid: 'Vercel의 GOOGLE_CLIENT_ID 값이 클라이언트 ID 모양(….apps.googleusercontent.com)이 아니에요. 값을 다시 확인해 주세요.',
       };
       toast(msg[g] ?? msg.fail, true);
     }

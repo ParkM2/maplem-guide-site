@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { checkState, clearSteps, emailAllowed, googleConfigured, login, passedStepOne, trustBrowser } from '../../../lib/server/auth';
+import { checkState, clearSteps, googleId, googleSecret, emailAllowed, googleConfigured, login, passedStepOne, trustBrowser } from '../../../lib/server/auth';
 
 export const prerender = false;
 
@@ -21,8 +21,8 @@ export const GET: APIRoute = async (ctx) => {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        client_id: googleId(),
+        client_secret: googleSecret(),
         redirect_uri: `${ctx.url.origin}/api/google/callback`,
         grant_type: 'authorization_code',
       }),
@@ -32,7 +32,7 @@ export const GET: APIRoute = async (ctx) => {
     // Google 서버에서 직접(HTTPS) 받은 id_token 이라 내용만 확인하면 됩니다.
     const claims = JSON.parse(Buffer.from(String(data.id_token).split('.')[1], 'base64url').toString());
     const okIssuer = claims.iss === 'https://accounts.google.com' || claims.iss === 'accounts.google.com';
-    if (!okIssuer || claims.aud !== process.env.GOOGLE_CLIENT_ID || Number(claims.exp) < Date.now() / 1000) return back('fail');
+    if (!okIssuer || claims.aud !== googleId() || Number(claims.exp) < Date.now() / 1000) return back('fail');
     if (!claims.email_verified || !emailAllowed(String(claims.email ?? ''))) return back('denied');
     clearSteps(ctx);
     login(ctx);

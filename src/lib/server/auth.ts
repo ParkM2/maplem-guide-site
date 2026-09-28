@@ -42,8 +42,15 @@ export function checkPassword(input: string) {
   return safeEqual(h(input), h(want));
 }
 
+// 붙여 넣을 때 섞인 공백, 줄바꿈, 따옴표는 빼고 씁니다.
+const clean = (k: string) => env(k).trim().replace(/^["']|["']$/g, '').trim();
+export const googleId = () => clean('GOOGLE_CLIENT_ID');
+export const googleSecret = () => clean('GOOGLE_CLIENT_SECRET');
+// 클라이언트 ID는 "숫자-문자.apps.googleusercontent.com" 모양이에요.
+export const googleIdLooksRight = () => /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(googleId());
+
 export function googleConfigured() {
-  return Boolean(env('GOOGLE_CLIENT_ID') && env('GOOGLE_CLIENT_SECRET'));
+  return Boolean(googleId() && googleSecret());
 }
 
 export function emailAllowed(email: string) {
