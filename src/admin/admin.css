@@ -202,3 +202,4 @@ body.admin { min-height: 100vh; }
 /* 목차 미리보기 (사이트와 같은 모양) */
 .ed-toc { margin: 16px 0 24px; }
 .ed-toc small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.notice { padding: 10px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 6px; background: var(--note); font-size: 14px; margin: 0 0 16px; }

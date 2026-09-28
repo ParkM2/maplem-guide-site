@@ -136,8 +136,10 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&
 $('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    await api('/api/login', { method: 'POST', body: JSON.stringify({ password: $<HTMLInputElement>('#password').value }) });
+    const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ password: $<HTMLInputElement>('#password').value }) });
     $<HTMLInputElement>('#password').value = '';
+    // 2단계: Google 로그인 화면으로
+    if (r.next) return void (location.href = r.next);
     await loadAll();
     route();
   } catch (err) {
@@ -757,6 +759,18 @@ window.addEventListener('hashchange', () => {
     const timer = setTimeout(() => ctl.abort(), 15000);
     const s = await (await fetch('/api/login', { signal: ctl.signal, cache: 'no-store' })).json();
     clearTimeout(timer);
+    const g = new URLSearchParams(location.search).get('g');
+    if (g) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      const msg: Record<string, string> = {
+        denied: '허용한 Google 계정이 아니에요. 관리자 계정으로 다시 로그인해 주세요.',
+        expired: '로그인 시간이 지났어요. 비밀번호부터 다시 입력해 주세요.',
+        cancel: 'Google 로그인을 취소했어요.',
+        fail: 'Google 로그인에 실패했어요. 잠시 뒤 다시 해 주세요.',
+      };
+      toast(msg[g] ?? msg.fail, true);
+    }
+    $('#twostep-off').hidden = s.twoStep !== false;
     if (!s.configured) return show('setup');
     if (!s.loggedIn) return show('login');
     await loadAll();
