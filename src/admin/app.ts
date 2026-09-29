@@ -96,7 +96,7 @@ const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000
 let categories: Category[] = [];
 let posts: PostMeta[] = [];
 let editor: Editor | null = null;
-let current: { file: string | null; about?: boolean } = { file: null };
+let current: { file: string | null; about?: boolean; draft?: boolean } = { file: null };
 let dirty = false;
 
 // ---------- 공통 ----------
@@ -154,7 +154,7 @@ $('#logout').addEventListener('click', async () => {
 
 // ---------- 목록 ----------
 async function loadAll() {
-  const data = await api('/api/posts');
+  const [data] = await Promise.all([api('/api/posts'), loadKeywordDefaults()]);
   posts = data.posts;
   categories = (data.categories as Category[]).sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 }
@@ -178,19 +178,32 @@ async function loadViews() {
   if (!$('#view-list').hidden) renderList();
 }
 
+// 임시 저장 글은 30일 동안 보관을 권해요. 지나면 표시만 바뀌고 저절로 지워지지는 않아요.
+function draftBadge(savedAt?: string) {
+  const days = savedAt ? Math.floor((Date.now() - Date.parse(savedAt)) / 864e5) : null;
+  const old = days != null && days >= 30;
+  const when = days == null ? '' : days === 0 ? ' · 오늘' : ` · ${days}일 전`;
+  return `<span class="badge${old ? ' old' : ''}">임시 저장${when}${old ? ' · 30일 지남' : ''}</span>`;
+}
+
 function renderList() {
   const sel = $<HTMLSelectElement>('#filter-cat');
   const keep = sel.value;
   sel.innerHTML = `<option value="">전체 분류</option>` + categories.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
   sel.value = keep;
+  // 임시 저장 글을 맨 위에, 그다음 발행한 글을 수정일 순으로
   const shown = posts
     .filter((p) => !sel.value || p.data.category === sel.value)
-    .sort((a, b) => String(b.data.updated ?? '').localeCompare(String(a.data.updated ?? '')));
+    .sort(
+      (a, b) =>
+        Number(Boolean(b.data.draft)) - Number(Boolean(a.data.draft)) ||
+        String(b.data.savedAt ?? b.data.updated ?? '').localeCompare(String(a.data.savedAt ?? a.data.updated ?? '')),
+    );
   $('#post-list').innerHTML = shown.length
     ? shown
         .map(
           (p) => `<li><a href="#edit/${encodeURIComponent(p.file)}">
-            <span><b>${esc(p.data.title)}</b>${p.data.draft ? '<span class="badge">임시 저장</span>' : ''}</span>
+            <span><b>${esc(p.data.title)}</b>${p.data.draft ? draftBadge(p.data.savedAt) : ''}</span>
             <span class="meta">${esc(catName(p.data.category))} · ${esc(p.data.updated)}${viewText(p.data.slug)}</span></a></li>`,
         )
         .join('')
@@ -564,6 +577,7 @@ async function openEditor(file: string | null) {
   const set = (id: string, v: unknown) => ($<HTMLInputElement>(id).value = v == null ? '' : String(v));
   $('#ed-delete').hidden = !file;
   $('#ed-meta').hidden = false;
+  $('#kw').hidden = false;
   if (!file) {
     const stamp = today().replace(/-/g, '');
     set('#ed-title', '');
@@ -571,9 +585,9 @@ async function openEditor(file: string | null) {
     set('#m-summary', '');
     set('#m-patch', '');
     set('#m-updated', today());
-    set('#m-tags', '');
+    setKeywords(kwDefaults);
     set('#m-order', 100);
-    $<HTMLInputElement>('#m-draft').checked = false;
+    current.draft = true;
     ($('#ed-meta') as HTMLDetailsElement).open = true;
     editor!.commands.setContent('');
     $('#ed-state').textContent = '새 글';
@@ -588,9 +602,9 @@ async function openEditor(file: string | null) {
       set('#m-summary', data.summary);
       set('#m-patch', data.patch);
       set('#m-updated', data.updated);
-      set('#m-tags', (data.tags ?? []).join(', '));
+      setKeywords(data.tags ?? []);
       set('#m-order', data.order ?? 100);
-      $<HTMLInputElement>('#m-draft').checked = Boolean(data.draft);
+      current.draft = Boolean(data.draft);
       ($('#ed-meta') as HTMLDetailsElement).open = false;
       editor!.commands.setContent(toHtml(body));
       $('#ed-state').textContent = '';
@@ -600,6 +614,7 @@ async function openEditor(file: string | null) {
   }
   dirty = false;
   updateToc();
+  editorButtons();
   $<HTMLInputElement>('#ed-title').focus();
 }
 
@@ -609,6 +624,8 @@ async function openAbout() {
   show('editor');
   current = { file: null, about: true };
   $('#ed-delete').hidden = true;
+  $('#kw').hidden = true;
+  editorButtons();
   $('#ed-meta').hidden = true;
   $('#ed-state').textContent = '불러오는 중…';
   editor!.commands.setContent('');
@@ -628,19 +645,28 @@ async function openAbout() {
 $('#ed-title').addEventListener('input', () => (dirty = true));
 $('#ed-meta').addEventListener('input', () => (dirty = true));
 
-$('#ed-save').addEventListener('click', async () => {
+// 임시 저장: 사이트에 안 보이게 저장하고 편집기에 그대로 남습니다.
+// 발행(저장): 사이트에 올리고 이전 화면으로 돌아갑니다.
+function editorButtons() {
+  const about = Boolean(current.about);
+  // 이미 발행한 글은 임시 저장으로 내리지 않게 버튼을 숨깁니다.
+  $('#ed-draft').hidden = about || !current.draft;
+  $('#ed-save').textContent = about || !current.draft ? '저장' : '발행';
+}
+
+async function doSave(asDraft: boolean) {
   if (!editor) return;
-  const btn = $<HTMLButtonElement>('#ed-save');
+  const btns = [$<HTMLButtonElement>('#ed-save'), $<HTMLButtonElement>('#ed-draft')];
   const val = (id: string) => $<HTMLInputElement>(id).value.trim();
   const about = Boolean(current.about);
   const slug = about ? 'about' : val('#m-slug');
-  if (!val('#ed-title')) return toast('제목을 적어 주세요.', true);
+  if (!val('#ed-title') && !asDraft) return toast('제목을 적어 주세요.', true);
   if (!about && !/^[a-z0-9-]+$/.test(slug)) {
     ($('#ed-meta') as HTMLDetailsElement).open = true;
     $<HTMLInputElement>('#m-slug').focus();
     return toast('주소는 영문 소문자, 숫자, 하이픈(-)만 쓸 수 있어요.', true);
   }
-  btn.disabled = true;
+  btns.forEach((b) => (b.disabled = true));
   try {
     // 본문 속 새 사진을 먼저 올리고, 주소를 /media/... 로 바꿉니다.
     const doc = new DOMParser().parseFromString(`<body>${editor.getHTML()}</body>`, 'text/html');
@@ -671,20 +697,30 @@ $('#ed-save').addEventListener('click', async () => {
         images,
         body,
         data: {
-          title: val('#ed-title'),
+          title: val('#ed-title') || '(제목 없음)',
           slug,
           category: $<HTMLSelectElement>('#m-category').value,
           summary: val('#m-summary'),
           patch: val('#m-patch'),
           updated: val('#m-updated') || today(),
-          tags: val('#m-tags').split(',').map((t) => t.trim()).filter(Boolean),
+          tags: keywords,
           order: Number(val('#m-order') || 100),
-          draft: $<HTMLInputElement>('#m-draft').checked,
+          draft: asDraft,
         },
       }),
     });
     current.file = res.file;
     dirty = false;
+    if (asDraft) {
+      editor.commands.setContent(body);
+      if (!val('#ed-title')) $<HTMLInputElement>('#ed-title').value = '(제목 없음)';
+      history.replaceState(null, '', `#edit/${encodeURIComponent(res.file)}`);
+      $('#ed-delete').hidden = false;
+      $('#ed-state').textContent = `임시 저장됨 ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+      toast(`임시 저장했어요. 사이트에는 안 보여요. (임시 저장 글 ${res.drafts}/${res.maxDrafts})`);
+      loadAll().catch(() => {});
+      return;
+    }
     $('#ed-state').textContent = '목록 새로 고치는 중…';
     await loadAll().catch(() => {});
     $('#ed-state').textContent = '';
@@ -695,9 +731,107 @@ $('#ed-save').addEventListener('click', async () => {
     $('#ed-state').textContent = '';
     toast((err as Error).message, true);
   } finally {
-    btn.disabled = false;
+    btns.forEach((b) => (b.disabled = false));
+  }
+}
+$('#ed-save').addEventListener('click', () => doSave(false));
+$('#ed-draft').addEventListener('click', () => doSave(true));
+
+// ---------- 키워드 해시태그 ----------
+const KW_MAX = 10;
+let keywords: string[] = [];
+let kwDefaults: string[] = [];
+const normKw = (t: string) => t.replace(/^#+/, '').replace(/[,#]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 20);
+function setKeywords(list: string[]) {
+  keywords = [];
+  for (const t of list) addKeyword(t, true);
+  renderKeywords();
+}
+function addKeyword(raw: string, quiet = false) {
+  const t = normKw(raw);
+  if (!t || keywords.some((k) => k.toLowerCase() === t.toLowerCase())) return;
+  if (keywords.length >= KW_MAX) return void (quiet || toast(`키워드는 ${KW_MAX}개까지 넣을 수 있어요.`, true));
+  keywords.push(t);
+  if (!quiet) (dirty = true), renderKeywords();
+}
+function renderKeywords() {
+  $('#kw-chips').replaceChildren(
+    ...keywords.map((k, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'kw-chip';
+      chip.textContent = `#${k}`;
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.textContent = '×';
+      x.title = '빼기';
+      x.addEventListener('click', () => {
+        keywords.splice(i, 1);
+        dirty = true;
+        renderKeywords();
+      });
+      chip.append(x);
+      return chip;
+    }),
+  );
+  $('#kw-count').textContent = `${keywords.length}/${KW_MAX}`;
+  $<HTMLInputElement>('#kw-input').disabled = keywords.length >= KW_MAX;
+  $('#kw-defaults').textContent = kwDefaults.length ? `기본값: ${kwDefaults.map((k) => '#' + k).join(' ')}` : '기본값 없음';
+}
+const kwInput = $<HTMLInputElement>('#kw-input');
+// 한글 입력 중에 Enter를 누르면 글자가 확정된 뒤에 키워드로 넣습니다.
+let kwEnterWhileComposing = false;
+kwInput.addEventListener('compositionend', () => {
+  if (!kwEnterWhileComposing) return;
+  kwEnterWhileComposing = false;
+  setTimeout(() => {
+    addKeyword(kwInput.value);
+    kwInput.value = '';
+  });
+});
+kwInput.addEventListener('keydown', (e) => {
+  if (e.isComposing) {
+    if (e.key === 'Enter') kwEnterWhileComposing = true;
+    return;
+  }
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addKeyword(kwInput.value);
+    kwInput.value = '';
+  } else if (e.key === 'Backspace' && !kwInput.value && keywords.length) {
+    keywords.pop();
+    dirty = true;
+    renderKeywords();
   }
 });
+kwInput.addEventListener('blur', () => {
+  if (kwInput.value.trim()) addKeyword(kwInput.value);
+  kwInput.value = '';
+});
+$('#kw-box').addEventListener('click', () => kwInput.focus());
+$('#kw-load').addEventListener('click', () => {
+  if (!kwDefaults.length) return toast('저장된 기본 키워드가 없어요. 키워드를 넣고 "기본값으로 저장"을 눌러 주세요.', true);
+  const before = keywords.length;
+  for (const k of kwDefaults) addKeyword(k, true);
+  if (keywords.length !== before) dirty = true;
+  renderKeywords();
+});
+$('#kw-set').addEventListener('click', async () => {
+  try {
+    const r = await api('/api/keywords', { method: 'POST', body: JSON.stringify({ defaults: keywords }) });
+    kwDefaults = r.defaults;
+    renderKeywords();
+    toast(keywords.length ? '기본 키워드를 저장했어요. 새 글에 자동으로 들어가요.' : '기본 키워드를 비웠어요.');
+  } catch (err) {
+    toast((err as Error).message, true);
+  }
+});
+async function loadKeywordDefaults() {
+  try {
+    kwDefaults = (await api('/api/keywords')).defaults ?? [];
+  } catch {
+    kwDefaults = [];
+  }
+}
 
 $('#ed-delete').addEventListener('click', async () => {
   const btn = $<HTMLButtonElement>('#ed-delete');

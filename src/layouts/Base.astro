@@ -5,8 +5,14 @@ import ThemeHead from '../components/ThemeHead.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
 import SiteSearch from '../components/SiteSearch.astro';
 
-interface Props { title?: string; description?: string; current?: string }
-const { title, description = SITE_DESC, current } = Astro.props;
+interface Props {
+  title?: string;
+  description?: string;
+  current?: string;
+  // 공략 글: 키워드(해시태그)와 날짜를 검색엔진이 읽을 수 있게 넣습니다.
+  article?: { keywords: string[]; modified: Date; section?: string };
+}
+const { title, description = SITE_DESC, current, article } = Astro.props;
 const categories = await getCategories();
 const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
 ---
@@ -20,7 +26,27 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
   <meta name="description" content={description} />
   <meta property="og:title" content={pageTitle} />
   <meta property="og:description" content={description} />
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content={article ? 'article' : 'website'} />
+  <meta property="og:site_name" content={SITE_NAME} />
+  <meta property="og:locale" content="ko_KR" />
+  {article && article.keywords.length > 0 && <meta name="keywords" content={article.keywords.join(', ')} />}
+  {article && <meta property="article:modified_time" content={article.modified.toISOString()} />}
+  {article?.section && <meta property="article:section" content={article.section} />}
+  {article?.keywords.map((k) => <meta property="article:tag" content={k} />)}
+  {article && (
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: title,
+      description,
+      keywords: article.keywords.join(', '),
+      dateModified: article.modified.toISOString(),
+      articleSection: article.section,
+      inLanguage: 'ko',
+      mainEntityOfPage: new URL(Astro.url.pathname, Astro.site).href,
+      publisher: { '@type': 'Organization', name: SITE_NAME },
+    }).replace(/</g, '\\u003c')} />
+  )}
   <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
   <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />

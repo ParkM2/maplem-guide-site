@@ -109,7 +109,7 @@ p { margin: 0 0 12px; }
 .prose hr { border: 0; border-top: 1px solid var(--rule); margin: 32px 0; }
 
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 32px; }
-.tag { font-size: 12px; padding: 1px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.tag { text-decoration: none; font-size: 12px; padding: 1px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
 
 .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; }
 .pager a { display: block; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; text-decoration: none; font-size: 15px; background: var(--surface); }

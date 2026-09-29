@@ -27,7 +27,12 @@ const { post, category, prev, next } = Astro.props;
 const { Content, headings } = await render(post);
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 ---
-<Base title={post.data.title} description={post.data.summary || undefined} current={category.slug}>
+<Base
+  title={post.data.title}
+  description={post.data.summary || undefined}
+  current={category.slug}
+  article={{ keywords: post.data.tags, modified: post.data.updated, section: category.name }}
+>
   <article>
     <p class="meta"><a href={url(`/${category.slug}/`)}>{category.name}</a></p>
     <h1>{post.data.title}</h1>
@@ -51,7 +56,7 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
     </div>
 
     {post.data.tags.length > 0 && (
-      <p class="tags">{post.data.tags.map((t) => <span class="tag">{t}</span>)}</p>
+      <p class="tags" aria-label="키워드">{post.data.tags.map((t) => <a class="tag" href={url(`/search/?q=${encodeURIComponent(t)}`)}>#{t}</a>)}</p>
     )}
 
     {(prev || next) && (

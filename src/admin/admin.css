@@ -205,3 +205,13 @@ body.admin { min-height: 100vh; }
 .notice { padding: 10px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 6px; background: var(--note); font-size: 14px; margin: 0 0 16px; }
 .wr-list .meta .views { color: var(--ink); font-weight: 600; }
 .wr-list .meta .views-today { color: var(--accent); }
+
+/* 키워드 해시태그 */
+.kw { margin: 12px 0 4px; }
+.kw-box { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); cursor: text; }
+.kw-chips { display: contents; }
+.kw-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 13px; }
+.kw-chip button { padding: 0 5px; border: 0; background: none; color: inherit; font-size: 14px; line-height: 1; cursor: pointer; }
+.kw-box input { flex: 1; min-width: 12em; width: auto; border: 0 !important; background: transparent !important; padding: 4px !important; outline: none; }
+.kw-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 6px; font-size: 13px; }
+.badge.old { background: var(--danger); color: #fff; }

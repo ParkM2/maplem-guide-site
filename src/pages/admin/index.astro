@@ -113,7 +113,8 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
       <span id="ed-state" class="hint"></span>
       <div class="row">
         <button type="button" id="ed-delete" class="danger" hidden>삭제</button>
-        <button type="button" id="ed-save" class="primary">저장</button>
+        <button type="button" id="ed-draft" title="사이트에 올리지 않고 저장해요. 나중에 이어서 쓸 수 있어요.">임시 저장</button>
+        <button type="button" id="ed-save" class="primary">발행</button>
       </div>
     </div>
 
@@ -229,6 +230,18 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
     <div class="ed-body">
       <label for="ed-title" class="sr">제목</label>
       <input id="ed-title" class="ed-title" placeholder="제목" autocomplete="off" />
+      <div class="kw" id="kw">
+        <div class="kw-box" id="kw-box">
+          <span id="kw-chips" class="kw-chips"></span>
+          <input id="kw-input" placeholder="# 키워드 입력 후 Enter (최대 10개)" autocomplete="off" maxlength="20" />
+          <span id="kw-count" class="hint">0/10</span>
+        </div>
+        <div class="kw-tools">
+          <button type="button" id="kw-load" class="link">기본 키워드 넣기</button>
+          <button type="button" id="kw-set" class="link">지금 키워드를 기본값으로 저장</button>
+          <span id="kw-defaults" class="hint"></span>
+        </div>
+      </div>
       <details class="ed-meta" id="ed-meta">
         <summary>글 정보 (분류, 주소, 요약, 기준 패치)</summary>
         <div class="meta-grid">
@@ -238,9 +251,7 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
           <label class="wide">한 줄 요약 <input id="m-summary" placeholder="목록과 검색 결과에 보여요" /></label>
           <label>기준 패치 <input id="m-patch" placeholder="2026년 9월 정기 점검" /></label>
           <label>수정일 <input id="m-updated" type="date" /></label>
-          <label>태그 <input id="m-tags" placeholder="쉼표로 구분: 뉴비, 200이전" /></label>
           <label>목록 순서 <input id="m-order" type="number" value="100" /><small>작을수록 위</small></label>
-          <label class="check"><input id="m-draft" type="checkbox" /> 임시 저장 (사이트에 안 보임)</label>
         </div>
       </details>
       <nav class="toc ed-toc" id="ed-toc" aria-label="목차 미리보기" hidden>
