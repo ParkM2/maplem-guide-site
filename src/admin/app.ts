@@ -161,6 +161,23 @@ async function loadAll() {
 
 const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? `(없는 분류: ${slug})`;
 
+// 글별 조회수 (방문 통계가 연결돼 있을 때만). 목록을 열 때마다 새로 가져옵니다.
+let postViews: Record<string, { total: number; today: number }> | null = null;
+function viewText(slug: string) {
+  if (!postViews) return '';
+  const v = postViews[slug] ?? { total: 0, today: 0 };
+  return ` · 조회 <b class="views">${v.total.toLocaleString()}</b>${v.today ? ` <span class="views-today">(오늘 +${v.today})</span>` : ''}`;
+}
+async function loadViews() {
+  try {
+    const r = await api('/api/views');
+    postViews = r.configured ? r.views : null;
+  } catch {
+    postViews = null;
+  }
+  if (!$('#view-list').hidden) renderList();
+}
+
 function renderList() {
   const sel = $<HTMLSelectElement>('#filter-cat');
   const keep = sel.value;
@@ -174,7 +191,7 @@ function renderList() {
         .map(
           (p) => `<li><a href="#edit/${encodeURIComponent(p.file)}">
             <span><b>${esc(p.data.title)}</b>${p.data.draft ? '<span class="badge">임시 저장</span>' : ''}</span>
-            <span class="meta">${esc(catName(p.data.category))} · ${esc(p.data.updated)}</span></a></li>`,
+            <span class="meta">${esc(catName(p.data.category))} · ${esc(p.data.updated)}${viewText(p.data.slug)}</span></a></li>`,
         )
         .join('')
     : `<li class="hint" style="padding:16px 4px">아직 글이 없어요. 새 글 쓰기를 눌러 시작하세요.</li>`;
@@ -743,6 +760,7 @@ function route() {
   }
   renderList();
   show('list');
+  loadViews();
 }
 window.addEventListener('hashchange', () => {
   if (dirty && !$('#view-editor').hidden && !location.hash.startsWith('#edit/') && location.hash !== '#about') {
