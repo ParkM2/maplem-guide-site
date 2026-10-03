@@ -463,7 +463,22 @@ const commands: Record<string, () => void> = {
     const pos = editor!.state.selection.from;
     try {
       const edited = await openImageEditor(src);
-      if (edited) editor!.chain().focus().setNodeSelection(pos).updateAttributes('image', { src: edited }).run();
+      if (!edited) return;
+      // 자르거나 돌리면 비율이 바뀌므로 다시 잽니다.
+      const ratio = await ratioFromSrc(edited.src);
+      editor!.chain().focus().setNodeSelection(pos).updateAttributes('image', { src: edited.src, ratio }).run();
+      if (edited.split) {
+        // 나누기: 두 번째 사진을 바로 다음에 넣습니다 (나란히 놓인 줄 안이면 그 줄 다음).
+        const view = editor!.view;
+        const $p = view.state.doc.resolve(pos);
+        const node = view.state.doc.nodeAt(pos)!;
+        const at = $p.parent.type.name === 'imageRow' ? $p.after() : pos + node.nodeSize;
+        const alt = node.attrs.alt ? `${node.attrs.alt} (2)` : null;
+        const img = view.state.schema.nodes.image.create({ src: edited.split, alt, ratio: await ratioFromSrc(edited.split) });
+        view.dispatch(view.state.tr.insert(at, img).scrollIntoView());
+        dirty = true;
+        toast('사진을 두 장으로 나눴어요.');
+      }
     } catch (err) {
       toast((err as Error).message, true);
     }
@@ -585,6 +600,15 @@ function splitRow(onlySelected: boolean) {
   }
   view.dispatch(tr.scrollIntoView());
   dirty = true;
+}
+
+function ratioFromSrc(src: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    const i = document.createElement('img');
+    i.onload = () => resolve(i.naturalHeight ? Math.round((i.naturalWidth / i.naturalHeight) * 1000) / 1000 : null);
+    i.onerror = () => resolve(null);
+    i.src = src;
+  });
 }
 
 function setImage(attrs: Record<string, unknown>) {

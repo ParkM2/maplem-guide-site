@@ -221,3 +221,4 @@ body.admin { min-height: 100vh; }
 .ed-content img.drop-left { box-shadow: -5px 0 0 var(--accent); }
 .ed-content img.drop-right { box-shadow: 5px 0 0 var(--accent); }
 .ed-content .img-row img { cursor: grab; }
+.ie-opts small { flex-basis: 100%; }

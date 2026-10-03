@@ -1,7 +1,11 @@
-// 사진 편집 창: 자르기, 회전, 반전, 모자이크, 흐리게, 펜, 형광펜, 네모, 화살표, 글자
-type Tool = 'crop' | 'mosaic' | 'blur' | 'pen' | 'marker' | 'rect' | 'arrow' | 'text';
+// 사진 편집 창: 선택과 나누기, 자르기, 회전, 반전, 모자이크, 흐리게, 펜, 형광펜, 네모, 화살표, 글자
+type Tool = 'select' | 'crop' | 'mosaic' | 'blur' | 'pen' | 'marker' | 'rect' | 'arrow' | 'text';
+
+// 적용하면 고친 사진(src)을, 나누기를 하면 두 번째 사진(split)도 함께 돌려줍니다.
+export type ImageEditResult = { src: string; split?: string };
 
 const TOOLS: [Tool, string][] = [
+  ['select', '⬚ 선택'],
   ['crop', '✂ 자르기'],
   ['mosaic', '▦ 모자이크'],
   ['blur', '◌ 흐리게'],
@@ -32,7 +36,20 @@ function copyOf(c: HTMLCanvasElement) {
   return n;
 }
 
-export async function openImageEditor(src: string): Promise<string | null> {
+function toUrl(c: HTMLCanvasElement) {
+  const webp = c.toDataURL('image/webp', 0.85);
+  return webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/jpeg', 0.85);
+}
+
+function part(src: HTMLCanvasElement, x: number, y: number, w: number, h: number) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  c.getContext('2d')!.drawImage(src, x, y, w, h, 0, 0, w, h);
+  return c;
+}
+
+export async function openImageEditor(src: string): Promise<ImageEditResult | null> {
   const img = await loadImage(src);
 
   const back = document.createElement('div');
@@ -70,8 +87,9 @@ export async function openImageEditor(src: string): Promise<string | null> {
   cv.height = Math.round(img.naturalHeight * scale0);
   ctx.drawImage(img, 0, 0, cv.width, cv.height);
 
-  const state = { tool: 'mosaic' as Tool, color: '#e03131', size: 4, block: 12, blur: 8, font: 36, outline: true };
+  const state = { tool: 'select' as Tool, color: '#e03131', size: 4, block: 12, blur: 8, font: 36, outline: true };
   const hist: HTMLCanvasElement[] = [];
+  let sel: { x: number; y: number; w: number; h: number } | null = null;
   const snap = () => {
     hist.push(copyOf(cv));
     if (hist.length > 30) hist.shift();
@@ -96,6 +114,9 @@ export async function openImageEditor(src: string): Promise<string | null> {
     const color = `<label>색 <input type="color" data-o="color" value="${state.color}"></label>`;
     const size = `<label>굵기 <input type="range" data-o="size" min="1" max="20" value="${state.size}"></label>`;
     const html: Record<Tool, string> = {
+      select: `나눌 부분을 끌어서 고르세요. <button type="button" class="strong" data-act="split" ${sel ? '' : 'disabled'}>✂ 나누기</button>
+               <button type="button" data-act="unselect" ${sel ? '' : 'disabled'}>선택 해제</button>
+               <small>가장자리까지 끌어 고르면 사진이 그 선에서 두 장으로 나뉘고, 가운데 일부만 고르면 원본은 그대로 두고 고른 부분이 새 사진으로 하나 더 생겨요.</small>`,
       crop: '남길 부분을 끌어서 고르면 바로 잘려요.',
       mosaic: `가릴 부분을 끌어서 고르세요. <label>모자이크 크기 <input type="range" data-o="block" min="4" max="40" value="${state.block}"></label>`,
       blur: `흐리게 할 부분을 끌어서 고르세요. <label>세기 <input type="range" data-o="blur" min="2" max="24" value="${state.blur}"></label>`,
@@ -203,6 +224,51 @@ export async function openImageEditor(src: string): Promise<string | null> {
     });
   }
 
+  // ---- 선택 ----
+  // 가장자리 가까이(4%)까지 끌면 가장자리에 딱 붙입니다.
+  const snapBox = (b: { x: number; y: number; w: number; h: number }) => {
+    const tx = cv.width * 0.04;
+    const ty = cv.height * 0.04;
+    let x1 = b.x, y1 = b.y, x2 = b.x + b.w, y2 = b.y + b.h;
+    if (x1 < tx) x1 = 0;
+    if (y1 < ty) y1 = 0;
+    if (cv.width - x2 < tx) x2 = cv.width;
+    if (cv.height - y2 < ty) y2 = cv.height;
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+  };
+  function drawSel(b: { x: number; y: number; w: number; h: number }) {
+    octx.clearRect(0, 0, ov.width, ov.height);
+    octx.fillStyle = 'rgba(0,0,0,.45)';
+    octx.fillRect(0, 0, ov.width, ov.height);
+    octx.clearRect(b.x, b.y, b.w, b.h);
+    octx.setLineDash([8 * k(), 6 * k()]);
+    octx.lineWidth = 2 * k();
+    octx.strokeStyle = '#4dabf7';
+    octx.strokeRect(b.x, b.y, b.w, b.h);
+    octx.setLineDash([]);
+  }
+  function clearSel() {
+    sel = null;
+    octx.clearRect(0, 0, ov.width, ov.height);
+    if (state.tool === 'select') renderOpts();
+  }
+  // 나누기: 가장자리에 닿은 띠 모양이면 두 조각으로, 아니면 원본 + 고른 부분
+  function split(): ImageEditResult | null {
+    if (!sel) return null;
+    const { x, y, w, h } = sel;
+    const W = cv.width;
+    const H = cv.height;
+    if (w >= W && h >= H) return null;
+    let a: HTMLCanvasElement;
+    let b: HTMLCanvasElement;
+    if (w >= W && y === 0) (a = part(cv, 0, 0, W, h)), (b = part(cv, 0, h, W, H - h));
+    else if (w >= W && y + h >= H) (a = part(cv, 0, 0, W, y)), (b = part(cv, 0, y, W, h));
+    else if (h >= H && x === 0) (a = part(cv, 0, 0, w, H)), (b = part(cv, w, 0, W - w, H));
+    else if (h >= H && x + w >= W) (a = part(cv, 0, 0, x, H)), (b = part(cv, x, 0, w, H));
+    else (a = copyOf(cv)), (b = part(cv, x, y, w, h));
+    return { src: toUrl(a), split: toUrl(b) };
+  }
+
   // ---- 마우스, 손가락 입력 ----
   let start: { x: number; y: number } | null = null;
   let last: { x: number; y: number } | null = null;
@@ -272,6 +338,7 @@ export async function openImageEditor(src: string): Promise<string | null> {
       return;
     }
     const b = box(start, p);
+    if (state.tool === 'select') return drawSel(snapBox(b));
     if (state.tool === 'arrow') return arrow(octx, start.x, start.y, p.x, p.y);
     if (state.tool === 'rect') return rect(octx, b.x, b.y, b.w, b.h);
     // 자르기, 모자이크, 흐리게: 고른 영역 표시
@@ -293,6 +360,13 @@ export async function openImageEditor(src: string): Promise<string | null> {
     const b = box(start, p);
     octx.clearRect(0, 0, ov.width, ov.height);
     const t = state.tool;
+    if (t === 'select') {
+      sel = b.w >= 3 && b.h >= 3 ? snapBox(b) : null;
+      if (sel) drawSel(sel);
+      renderOpts();
+      start = last = null;
+      return;
+    }
     if (t === 'marker' && markerPath.length) {
       ctx.save();
       strokeStyle();
@@ -317,6 +391,7 @@ export async function openImageEditor(src: string): Promise<string | null> {
     start = last = null;
     markerPath = [];
     octx.clearRect(0, 0, ov.width, ov.height);
+    if (sel && state.tool === 'select') drawSel(sel);
   });
 
   // ---- 회전, 반전, 되돌리기 ----
@@ -343,7 +418,7 @@ export async function openImageEditor(src: string): Promise<string | null> {
   }
 
   return new Promise((resolve) => {
-    const close = (result: string | null) => {
+    const close = (result: ImageEditResult | null) => {
       document.removeEventListener('keydown', onKey);
       back.remove();
       resolve(result);
@@ -353,7 +428,7 @@ export async function openImageEditor(src: string): Promise<string | null> {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         const h = hist.pop();
-        if (h) restore(h);
+        if (h) restore(h), clearSel();
       }
     };
     document.addEventListener('keydown', onKey);
@@ -362,10 +437,13 @@ export async function openImageEditor(src: string): Promise<string | null> {
       const toolBtn = el.closest<HTMLButtonElement>('[data-tool]');
       if (toolBtn) {
         state.tool = toolBtn.dataset.tool as Tool;
+        sel = null;
+        octx.clearRect(0, 0, ov.width, ov.height);
         renderOpts();
         return;
       }
       const act = el.closest<HTMLButtonElement>('[data-act]')?.dataset.act;
+      if (act === 'rotl' || act === 'rotr' || act === 'flip' || act === 'undo') clearSel();
       if (act === 'rotl') rotate(-1);
       if (act === 'rotr') rotate(1);
       if (act === 'flip') flip();
@@ -373,12 +451,22 @@ export async function openImageEditor(src: string): Promise<string | null> {
         const h = hist.pop();
         if (h) restore(h);
       }
+      if (act === 'unselect') clearSel();
+      if (act === 'split') {
+        try {
+          const r = split();
+          if (!r) return alert('사진 전체가 아닌 일부를 골라 주세요.');
+          close(r);
+        } catch {
+          alert('이 사진은 다른 사이트에서 가져온 것이라 편집할 수 없어요. 파일로 받아서 다시 넣어 주세요.');
+        }
+        return;
+      }
       if (act === 'cancel') close(null);
       if (act === 'apply') {
         try {
           if (!hist.length && scale0 === 1) return close(null); // 바뀐 게 없음
-          const webp = cv.toDataURL('image/webp', 0.85);
-          close(webp.startsWith('data:image/webp') ? webp : cv.toDataURL('image/jpeg', 0.85));
+          close({ src: toUrl(cv) });
         } catch {
           alert('이 사진은 다른 사이트에서 가져온 것이라 편집할 수 없어요. 파일로 받아서 다시 넣어 주세요.');
         }
