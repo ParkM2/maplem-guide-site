@@ -83,8 +83,15 @@ p { margin: 0 0 12px; }
 .stamp b { color: var(--ink); font-weight: 600; font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 .toc { background: var(--note); border-radius: 6px; padding: 12px 16px; font-size: 14px; margin-bottom: 32px; }
 .toc p { margin: 0 0 4px; font-weight: 600; }
-.toc ol { margin: 0; padding-left: 1.2em; }
-.toc .d3 { margin-left: 1em; list-style: circle; }
+.toc ol { margin: 0; padding-left: 0; list-style: none; counter-reset: toc; }
+/* 목차와 본문 소제목(제목 2)에 같은 번호 1. 2. 3. 을 붙입니다 */
+.toc .d2 { counter-increment: toc; }
+.toc .d2::before { content: counter(toc) ". "; color: var(--muted); }
+.toc .d3 { margin-left: 1.4em; }
+.toc .d3::before { content: "· "; color: var(--muted); }
+.prose.numbered { counter-reset: h2; }
+.prose.numbered h2 { counter-increment: h2; }
+.prose.numbered h2::before { content: counter(h2) ". "; }
 .toc a { color: var(--muted); }
 
 .prose h2 { padding-top: 20px; border-top: 1px solid var(--rule); }
@@ -102,6 +109,10 @@ p { margin: 0 0 12px; }
 .prose p:empty::before { content: "\200b"; }
 .prose th { background: var(--note); }
 .prose th { color: var(--muted); font-weight: 600; font-size: 13px; }
+/* 나란히 놓은 사진: 사진 비율(--r)만큼 폭을 나눠 높이를 맞춥니다 */
+.prose .img-row { display: flex; gap: 6px; margin: 16px 0; align-items: flex-start; }
+.prose .img-row > *, .prose .img-row > a.zoom { flex: var(--r, 1) 1 0%; min-width: 0; margin: 0; }
+.prose .img-row img { width: 100% !important; margin: 0 !important; }
 .prose img { display: block; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--rule); }
 .prose a:not(.zoom) { color: var(--link); text-decoration: underline; }
 .prose a:not(.zoom):hover { text-decoration-thickness: 2px; }

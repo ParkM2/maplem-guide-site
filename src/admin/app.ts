@@ -1,5 +1,7 @@
 // 글쓰기 화면: 로그인, 글 목록, 편집기, 분류 관리
-import { Editor, Extension, mergeAttributes } from '@tiptap/core';
+import { Editor, Extension, Node as TNode, mergeAttributes } from '@tiptap/core';
+import { Plugin, NodeSelection } from '@tiptap/pm/state';
+import type { EditorView } from '@tiptap/pm/view';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle, FontSize, Color, BackgroundColor } from '@tiptap/extension-text-style';
 import TextAlign from '@tiptap/extension-text-align';
@@ -41,14 +43,48 @@ const SizedImage = Image.extend({
         renderHTML: () => ({}),
       },
       align: { default: null, parseHTML: (el) => el.getAttribute('data-align'), renderHTML: () => ({}) },
+      // 가로/세로 비율: 나란히 놓을 때 높이를 맞추는 데 씁니다.
+      ratio: { default: null, parseHTML: (el) => Number(el.getAttribute('data-ratio')) || null, renderHTML: () => ({}) },
     };
   },
   renderHTML({ node, HTMLAttributes }) {
-    const { width, align } = node.attrs;
+    const { width, align, ratio } = node.attrs;
     let style = width ? `width: ${width};` : '';
+    if (ratio) style += ` --r: ${ratio};`;
     if (align === 'center') style += ' margin-left: auto; margin-right: auto;';
     if (align === 'right') style += ' margin-left: auto; margin-right: 0;';
-    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { style: style.trim() || null, 'data-align': align })];
+    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { style: style.trim() || null, 'data-align': align, 'data-ratio': ratio })];
+  },
+});
+
+// 사진 나란히 놓기: <div class="img-row"> 안에 사진 2~4장. 한 장만 남으면 줄을 풀어 보통 사진으로 돌립니다.
+const ROW_MAX = 4;
+const ImageRow = TNode.create({
+  name: 'imageRow',
+  group: 'block',
+  content: 'image+',
+  parseHTML: () => [{ tag: 'div.img-row' }],
+  renderHTML: () => ['div', { class: 'img-row' }, 0],
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        appendTransaction: (trs, _old, state) => {
+          if (!trs.some((t) => t.docChanged)) return null;
+          const lonely: { pos: number; size: number; child: any }[] = [];
+          state.doc.descendants((node, pos) => {
+            if (node.type.name === 'imageRow') {
+              if (node.childCount === 1) lonely.push({ pos, size: node.nodeSize, child: node.firstChild });
+              return false;
+            }
+            return true;
+          });
+          if (!lonely.length) return null;
+          const tr = state.tr;
+          for (const l of lonely.reverse()) tr.replaceWith(l.pos, l.pos + l.size, l.child);
+          return tr;
+        },
+      }),
+    ];
   },
 });
 
@@ -306,6 +342,7 @@ function makeEditor() {
       BackgroundColor,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       SizedImage.configure({ allowBase64: true }),
+      ImageRow,
       Spacing,
       TableKit.configure({ table: { resizable: true, cellMinWidth: 48 }, tableCell: false, tableHeader: false }),
       ColorCell,
@@ -313,7 +350,26 @@ function makeEditor() {
       Placeholder.configure({ placeholder: '본문을 입력하세요. 사진은 끌어다 놓거나 붙여넣어도 돼요.' }),
     ],
     editorProps: {
-      handleDrop: (_view, event) => {
+      handleDOMEvents: {
+        dragover: (view, event) => {
+          markDropTarget(view, event);
+          return false;
+        },
+        dragleave: (view) => {
+          clearDropMarks(view);
+          return false;
+        },
+        dragend: (view) => {
+          clearDropMarks(view);
+          return false;
+        },
+      },
+      handleDrop: (view, event, slice, moved) => {
+        clearDropMarks(view);
+        if (moved && dropBeside(view, event, slice)) {
+          event.preventDefault();
+          return true;
+        }
         const files = [...(event.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/'));
         if (!files.length) return false;
         event.preventDefault();
@@ -398,6 +454,9 @@ const commands: Record<string, () => void> = {
     if (alt !== null) setImage({ alt: alt.trim() || null });
   },
   'img-del': () => editor!.chain().focus().deleteSelection().run(),
+  'img-join': () => joinWithNext(),
+  'img-split': () => splitRow(false),
+  'img-out': () => splitRow(true),
   'img-edit': async () => {
     const { src } = editor!.getAttributes('image');
     if (!src) return;
@@ -410,6 +469,123 @@ const commands: Record<string, () => void> = {
     }
   },
 };
+
+// ---------- 사진 나란히 놓기 / 나누기 ----------
+// 끌고 있는 사진을 다른 사진의 왼쪽 절반에 놓으면 왼쪽에, 오른쪽 절반에 놓으면 오른쪽에 나란히 붙습니다.
+function imgAt(view: EditorView, event: DragEvent) {
+  const el = (event.target as Element | null)?.closest?.('img');
+  if (!el || !view.dom.contains(el)) return null;
+  let pos = -1;
+  view.state.doc.descendants((node, p) => {
+    if (pos >= 0) return false;
+    if (node.type.name === 'image' && view.nodeDOM(p) === el) pos = p;
+    return true;
+  });
+  if (pos < 0) return null;
+  const r = el.getBoundingClientRect();
+  return { el, pos, side: (event.clientX < r.left + r.width / 2 ? 'left' : 'right') as 'left' | 'right' };
+}
+function draggedImagePos(view: EditorView) {
+  const sel = view.state.selection;
+  return sel instanceof NodeSelection && sel.node.type.name === 'image' ? sel.from : null;
+}
+function clearDropMarks(view: EditorView) {
+  view.dom.querySelectorAll('img.drop-left, img.drop-right').forEach((i) => i.classList.remove('drop-left', 'drop-right'));
+}
+function markDropTarget(view: EditorView, event: DragEvent) {
+  clearDropMarks(view);
+  const from = draggedImagePos(view);
+  const t = imgAt(view, event);
+  if (from == null || !t || t.pos === from) return;
+  t.el.classList.add(t.side === 'left' ? 'drop-left' : 'drop-right');
+}
+function dropBeside(view: EditorView, event: DragEvent, slice: any) {
+  if (slice.content.childCount !== 1 || slice.content.firstChild.type.name !== 'image') return false;
+  const from = draggedImagePos(view);
+  const t = imgAt(view, event);
+  if (from == null || !t || t.pos === from) return false;
+  return placeBeside(view, from, t.pos, t.side);
+}
+const ratioOf = (view: EditorView, pos: number) => {
+  const el = view.nodeDOM(pos) as HTMLImageElement | null;
+  return el?.naturalWidth && el.naturalHeight ? Math.round((el.naturalWidth / el.naturalHeight) * 1000) / 1000 : null;
+};
+// from 위치의 사진을 target 사진의 왼쪽/오른쪽으로 옮겨 나란히 놓습니다.
+function placeBeside(view: EditorView, from: number, target: number, side: 'left' | 'right') {
+  const { state } = view;
+  const moving = state.doc.nodeAt(from);
+  const tNode = state.doc.nodeAt(target);
+  if (!moving || !tNode) return false;
+  const $t = state.doc.resolve(target);
+  const inRow = $t.parent.type.name === 'imageRow';
+  const sameRow = inRow && state.doc.resolve(from).parent === $t.parent;
+  const count = inRow ? $t.parent.childCount + (sameRow ? 0 : 1) : 2;
+  if (count > ROW_MAX) {
+    toast(`한 줄에 사진은 ${ROW_MAX}장까지 놓을 수 있어요.`, true);
+    return true;
+  }
+  const img = moving.type.create({ ...moving.attrs, ratio: moving.attrs.ratio ?? ratioOf(view, from) }, null, moving.marks);
+  const tImg = tNode.type.create({ ...tNode.attrs, ratio: tNode.attrs.ratio ?? ratioOf(view, target) }, null, tNode.marks);
+  const tr = state.tr;
+  if (inRow) {
+    tr.replaceWith(target, target + tNode.nodeSize, side === 'left' ? [img, tImg] : [tImg, img]);
+  } else {
+    const row = state.schema.nodes.imageRow.create(null, side === 'left' ? [img, tImg] : [tImg, img]);
+    tr.replaceWith(target, target + tNode.nodeSize, row);
+  }
+  const a = tr.mapping.map(from, 1);
+  const b = tr.mapping.map(from + moving.nodeSize, -1);
+  if (b > a) tr.delete(a, b);
+  view.dispatch(tr.scrollIntoView());
+  dirty = true;
+  return true;
+}
+// 고른 사진을 아래쪽 다음 사진(또는 나란히 놓인 사진 줄)과 나란히 붙입니다. (끌기 대신 버튼으로)
+function joinWithNext() {
+  const view = editor!.view;
+  const from = draggedImagePos(view);
+  if (from == null) return;
+  const $f = view.state.doc.resolve(from);
+  // 나란히 놓인 줄 안이면 그 줄 다음, 아니면 사진 다음부터 찾습니다.
+  const inRow = $f.parent.type.name === 'imageRow';
+  const parent = inRow ? $f.node($f.depth - 1) : $f.parent;
+  let index = (inRow ? $f.index($f.depth - 1) : $f.index()) + 1;
+  let pos = inRow ? $f.after() : from + view.state.doc.nodeAt(from)!.nodeSize;
+  for (; index < parent.childCount; index++) {
+    const n = parent.child(index);
+    if (n.type.name === 'paragraph' && n.content.size === 0) {
+      pos += n.nodeSize;
+      continue;
+    }
+    if (n.type.name === 'image') return void placeBeside(view, pos, from, 'right');
+    if (n.type.name === 'imageRow') return void placeBeside(view, from, pos + 1, 'left');
+    break;
+  }
+  toast('바로 아래에 붙일 사진이 없어요. 사진을 끌어서 다른 사진 옆에 놓아도 돼요.', true);
+}
+// 나란히 놓인 줄을 풀어 사진을 세로로 하나씩 놓습니다.
+function splitRow(onlySelected: boolean) {
+  const view = editor!.view;
+  const from = draggedImagePos(view);
+  if (from == null) return;
+  const $f = view.state.doc.resolve(from);
+  if ($f.parent.type.name !== 'imageRow') return;
+  const row = $f.parent;
+  const rowPos = $f.before();
+  const tr = view.state.tr;
+  if (onlySelected) {
+    const node = view.state.doc.nodeAt(from)!;
+    tr.delete(from, from + node.nodeSize);
+    const after = tr.mapping.map(rowPos + row.nodeSize);
+    tr.insert(after, node);
+  } else {
+    const imgs: any[] = [];
+    row.forEach((n) => imgs.push(n));
+    tr.replaceWith(rowPos, rowPos + row.nodeSize, imgs);
+  }
+  view.dispatch(tr.scrollIntoView());
+  dirty = true;
+}
 
 function setImage(attrs: Record<string, unknown>) {
   editor!.chain().focus().updateAttributes('image', attrs).run();
@@ -504,6 +680,10 @@ function updateToolbar() {
   $('#tb-table').hidden = !editor.isActive('table');
   const isImg = editor.isActive('image');
   $('#tb-image').hidden = !isImg;
+  const sel = editor.state.selection;
+  const inRow = isImg && editor.state.doc.resolve(sel.from).parent.type.name === 'imageRow';
+  $('#img-sizing').hidden = inRow;
+  $('#img-row-tools').hidden = !inRow;
   if (isImg) {
     const { width, align } = editor.getAttributes('image');
     const w = width ? parseInt(width, 10) : 100;
@@ -578,6 +758,7 @@ async function openEditor(file: string | null) {
   $('#ed-delete').hidden = !file;
   $('#ed-meta').hidden = false;
   $('#kw').hidden = false;
+  $('#editor').classList.add('numbered');
   if (!file) {
     const stamp = today().replace(/-/g, '');
     set('#ed-title', '');
@@ -625,6 +806,7 @@ async function openAbout() {
   current = { file: null, about: true };
   $('#ed-delete').hidden = true;
   $('#kw').hidden = true;
+  $('#editor').classList.remove('numbered');
   editorButtons();
   $('#ed-meta').hidden = true;
   $('#ed-state').textContent = '불러오는 중…';

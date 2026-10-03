@@ -16,6 +16,9 @@ export default function rehypeMedia({ base = '' } = {}) {
         const img = { ...node };
         node.tagName = 'a';
         node.properties = { href: img.properties.src, className: ['zoom'], target: '_blank', rel: 'noopener' };
+        // 나란히 놓은 사진은 감싼 링크가 폭을 나눠 가지므로 비율을 링크에도 넣습니다.
+        const ratio = Number(img.properties.dataRatio);
+        if (ratio > 0) node.properties.style = `--r: ${ratio}`;
         node.children = [img];
         return;
       }

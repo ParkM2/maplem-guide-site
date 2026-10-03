@@ -215,3 +215,9 @@ body.admin { min-height: 100vh; }
 .kw-box input { flex: 1; min-width: 12em; width: auto; border: 0 !important; background: transparent !important; padding: 4px !important; outline: none; }
 .kw-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 6px; font-size: 13px; }
 .badge.old { background: var(--danger); color: #fff; }
+
+/* 사진 나란히 놓기 */
+.tb-group { display: contents; }
+.ed-content img.drop-left { box-shadow: -5px 0 0 var(--accent); }
+.ed-content img.drop-right { box-shadow: 5px 0 0 var(--accent); }
+.ed-content .img-row img { cursor: grab; }
