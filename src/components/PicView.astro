@@ -1,0 +1,97 @@
+---
+// 이미지로 보기: 목차부터 키워드(해시태그)까지를 한 장의 이미지로 만들어 보여 줍니다. 글자는 고를 수 없어요.
+---
+<button type="button" class="pic-btn" data-picview>
+  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4zM4 15l4-4 5 5 3-3 4 4M15 9h.01"/></svg>
+  <span>이미지로 보기</span>
+</button>
+
+<script>
+  import { toCanvas } from 'html-to-image';
+
+  // 휴대폰(특히 아이폰)은 그림판 하나가 너무 크면 그리지 못해서, 크기를 정해진 한도 안으로 맞춥니다.
+  const MAX_AREA = 16_000_000;
+  const MAX_SIDE = 16_000;
+
+  async function build(article: HTMLElement) {
+    const parts = ['.toc', '.prose', '.tags'].map((s) => article.querySelector<HTMLElement>(s)).filter(Boolean) as HTMLElement[];
+    const width = article.querySelector<HTMLElement>('.prose')!.getBoundingClientRect().width;
+    const bg = getComputedStyle(document.body).backgroundColor;
+    // 화면 밖에 같은 모양으로 복사해 두고 그 부분을 그립니다.
+    const box = document.createElement('article');
+    box.style.cssText = `position:fixed;left:-100000px;top:0;width:${width}px;padding:24px 20px;background:${bg};color:${getComputedStyle(document.body).color}`;
+    for (const p of parts) {
+      const c = p.cloneNode(true) as HTMLElement;
+      c.querySelectorAll('img').forEach((i) => i.removeAttribute('loading'));
+      // 소제목 번호(1. 2. 3.)는 CSS가 세는 값이라 그림으로 옮길 때 사라져서, 실제 글자로 바꿔 둡니다.
+      const numbered = c.matches('.toc') ? c.querySelectorAll('li.d2') : c.matches('.prose.numbered') ? c.querySelectorAll(':scope > h2') : [];
+      numbered.forEach((el, i) => {
+        const n = document.createElement('span');
+        n.textContent = `${i + 1}. `;
+        if (c.matches('.toc')) n.style.color = 'var(--muted)';
+        el.prepend(n);
+        el.classList.add('num-lit');
+      });
+      box.appendChild(c);
+    }
+    document.body.appendChild(box);
+    try {
+      await document.fonts.ready;
+      await Promise.all([...box.querySelectorAll('img')].map((i) => (i.complete ? null : new Promise((r) => (i.onload = i.onerror = r)))));
+      const w = box.offsetWidth;
+      const h = box.offsetHeight;
+      const ratio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(MAX_AREA / (w * h)), MAX_SIDE / h);
+      // 화면 밖 위치는 그림에 옮겨 오지 않습니다.
+      return await toCanvas(box, { pixelRatio: ratio, backgroundColor: bg, style: { position: 'static', left: '0', top: '0' } });
+    } finally {
+      box.remove();
+    }
+  }
+
+  function show(canvas: HTMLCanvasElement) {
+    const view = document.createElement('div');
+    view.className = 'pic-view';
+    view.setAttribute('role', 'dialog');
+    view.setAttribute('aria-label', '이미지로 보기');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'pic-close';
+    close.textContent = '✕ 닫기';
+    const img = document.createElement('img');
+    img.alt = document.title;
+    img.draggable = false;
+    img.src = canvas.toDataURL('image/jpeg', 0.92);
+    img.style.maxWidth = `${canvas.width / (canvas.width > 1600 ? 2 : 1)}px`;
+    view.append(close, img);
+    document.body.appendChild(view);
+    document.documentElement.style.overflow = 'hidden';
+    const done = () => {
+      view.remove();
+      document.documentElement.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && done();
+    close.addEventListener('click', done);
+    view.addEventListener('click', (e) => e.target === view && done());
+    document.addEventListener('keydown', onKey);
+    close.focus();
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-picview]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const article = btn.closest('article');
+      if (!article || btn.disabled) return;
+      const label = btn.querySelector('span')!;
+      btn.disabled = true;
+      label.textContent = '만드는 중…';
+      try {
+        show(await build(article));
+      } catch {
+        alert('이미지를 만들지 못했어요. 잠시 뒤 다시 해 주세요.');
+      } finally {
+        btn.disabled = false;
+        label.textContent = '이미지로 보기';
+      }
+    });
+  });
+</script>

@@ -203,13 +203,21 @@ body.site input, body.site textarea, body.site [contenteditable="true"] { caret-
 
 /* 공유하기 버튼 */
 .send-box { position: relative; display: flex; }
-.send-top { justify-content: flex-end; margin: -8px 0 16px; }
+.post-tools { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin: -8px 0 16px; }
+.send-top { justify-content: flex-end; }
 .send-bottom { justify-content: center; margin: 32px 0 8px; }
-.send-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
-.send-btn:hover, .send-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.send-btn, .pic-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.pic-btn:disabled { opacity: .7; cursor: progress; }
+.send-btn:hover, .send-btn[aria-expanded="true"], .pic-btn:hover { border-color: var(--accent); color: var(--accent); }
 .send-pop { position: absolute; top: calc(100% + 6px); z-index: 40; min-width: 150px; padding: 6px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.25); display: flex; flex-direction: column; }
 .send-pop[hidden] { display: none; }
 .send-top .send-pop { right: 0; }
 .send-bottom .send-pop { left: 50%; transform: translateX(-50%); }
 .send-pop button, .send-pop a { display: block; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; font-size: 14px; text-align: left; text-decoration: none; cursor: pointer; }
 .send-pop button:hover, .send-pop a:hover { background: var(--note); }
+
+/* 이미지로 보기 창 */
+.pic-view { position: fixed; inset: 0; z-index: 100; overflow-y: auto; background: rgba(0,0,0,.82); padding: 56px 12px 24px; user-select: none; -webkit-user-select: none; }
+.pic-view img { display: block; width: 100%; height: auto; margin: 0 auto; border-radius: 6px; }
+.pic-close { position: fixed; top: 10px; right: 12px; z-index: 1; padding: 8px 14px; border: 0; border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.num-lit::before { content: none !important; }

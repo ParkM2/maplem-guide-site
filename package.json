@@ -21,6 +21,7 @@
     "@tiptap/pm": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
     "astro": "7.3.5",
+    "html-to-image": "^1.11.13",
     "micromark": "^4.0.3",
     "micromark-extension-gfm": "^3.0.0",
     "postgres": "^3.4.9",

@@ -2,6 +2,7 @@
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import PostSend from '../../components/PostSend.astro';
+import PicView from '../../components/PicView.astro';
 import { getCategories, getPosts, postUrl, url, fmtDate } from '../../lib/site';
 
 export async function getStaticPaths() {
@@ -43,7 +44,10 @@ const pageUrl = new URL(postUrl(post), Astro.site).href;
       {post.data.patch && <span>기준 패치 <b>{post.data.patch}</b></span>}
       <span>수정일 <b>{fmtDate(post.data.updated)}</b></span>
     </p>
-    <PostSend title={post.data.title} href={pageUrl} place="top" />
+    <div class="post-tools">
+      <PicView />
+      <PostSend title={post.data.title} href={pageUrl} place="top" />
+    </div>
 
     {toc.length > 1 && (
       <nav class="toc" aria-label="목차">
