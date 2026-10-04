@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import PostSend from '../../components/PostSend.astro';
 import { getCategories, getPosts, postUrl, url, fmtDate } from '../../lib/site';
 
 export async function getStaticPaths() {
@@ -26,6 +27,7 @@ export async function getStaticPaths() {
 const { post, category, prev, next } = Astro.props;
 const { Content, headings } = await render(post);
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const pageUrl = new URL(postUrl(post), Astro.site).href;
 ---
 <Base
   title={post.data.title}
@@ -41,6 +43,7 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
       {post.data.patch && <span>기준 패치 <b>{post.data.patch}</b></span>}
       <span>수정일 <b>{fmtDate(post.data.updated)}</b></span>
     </p>
+    <PostSend title={post.data.title} href={pageUrl} place="top" />
 
     {toc.length > 1 && (
       <nav class="toc" aria-label="목차">
@@ -58,6 +61,8 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
     {post.data.tags.length > 0 && (
       <p class="tags" aria-label="키워드">{post.data.tags.map((t) => <a class="tag" href={url(`/search/?q=${encodeURIComponent(t)}`)}>#{t}</a>)}</p>
     )}
+
+    <PostSend title={post.data.title} href={pageUrl} place="bottom" />
 
     {(prev || next) && (
       <nav class="pager" aria-label="같은 분류의 다른 공략">

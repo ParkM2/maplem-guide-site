@@ -1,0 +1,76 @@
+---
+// 글 공유 버튼. 휴대폰은 기본 공유 창(카카오톡 등), PC는 링크 복사와 SNS 공유 목록을 보여 줍니다.
+// 광고 차단기의 "공유 버튼 숨기기" 목록에 걸리지 않게 클래스 이름에 share 를 쓰지 않고,
+// SNS 주소도 링크(href) 대신 버튼에 담아 눌렀을 때 새 창으로 엽니다.
+interface Props { title: string; href: string; place: 'top' | 'bottom' }
+const { title, href, place } = Astro.props;
+const u = encodeURIComponent(href);
+const t = encodeURIComponent(title);
+const links = [
+  { name: '네이버', url: `https://share.naver.com/web/shareView?url=${u}&title=${t}` },
+  { name: '밴드', url: `https://band.us/plugin/share?body=${encodeURIComponent(`${title}\n${href}`)}&route=${u}` },
+  { name: '페이스북', url: `https://www.facebook.com/sharer/sharer.php?u=${u}` },
+  { name: 'X', url: `https://x.com/intent/post?url=${u}&text=${t}` },
+];
+---
+<div class={`send-box send-${place}`} data-send data-title={title} data-href={href}>
+  <button type="button" class="send-btn" aria-haspopup="true" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7 8l5-5 5 5"/></svg>
+    공유하기
+  </button>
+  <div class="send-pop" role="menu" hidden>
+    <button type="button" role="menuitem" data-copy>링크 복사</button>
+    <button type="button" role="menuitem" data-native hidden>다른 앱으로</button>
+    {links.map((l) => <button type="button" role="menuitem" data-go={l.url}>{l.name}</button>)}
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var boxes = document.querySelectorAll('[data-send]');
+    var touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    var closeAll = function () {
+      boxes.forEach(function (b) {
+        b.querySelector('.send-pop').hidden = true;
+        b.querySelector('.send-btn').setAttribute('aria-expanded', 'false');
+      });
+    };
+    var copy = function (text, btn) {
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = '복사했어요';
+        setTimeout(function () { btn.textContent = old; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { window.prompt('아래 주소를 복사하세요', text); });
+      else window.prompt('아래 주소를 복사하세요', text);
+    };
+    boxes.forEach(function (box) {
+      if (box.dataset.bound) return;
+      box.dataset.bound = '1';
+      var data = { title: box.dataset.title, url: box.dataset.href };
+      var btn = box.querySelector('.send-btn');
+      var pop = box.querySelector('.send-pop');
+      if (navigator.share) box.querySelector('[data-native]').hidden = false;
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        // 휴대폰: 기본 공유 창을 바로 엽니다.
+        if (touch && navigator.share) return navigator.share(data).catch(function () {});
+        var open = pop.hidden;
+        closeAll();
+        pop.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+      });
+      box.querySelector('[data-copy]').addEventListener('click', function (e) { copy(data.url, e.currentTarget); });
+      box.querySelector('[data-native]').addEventListener('click', function () { navigator.share(data).catch(function () {}); closeAll(); });
+      pop.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var go = e.target.closest('[data-go]');
+        if (!go) return;
+        window.open(go.dataset.go, '_blank', 'noopener,width=600,height=640');
+        closeAll();
+      });
+    });
+    document.addEventListener('click', closeAll);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+  })();
+</script>

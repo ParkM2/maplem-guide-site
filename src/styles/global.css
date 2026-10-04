@@ -200,3 +200,16 @@ body.site input, body.site textarea, body.site [contenteditable="true"] { caret-
 /* 첫 화면 그림이 브라우저 100% 비율에서도 한 화면에 다 들어오게, 화면 높이에 맞춰 줄입니다. */
 .home-map .map-full { width: min(100%, calc((100vh - 110px) * 16 / 9)); margin: 0 auto; }
 @supports (height: 100svh) { .home-map .map-full { width: min(100%, calc((100svh - 110px) * 16 / 9)); } }
+
+/* 공유하기 버튼 */
+.send-box { position: relative; display: flex; }
+.send-top { justify-content: flex-end; margin: -8px 0 16px; }
+.send-bottom { justify-content: center; margin: 32px 0 8px; }
+.send-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.send-btn:hover, .send-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.send-pop { position: absolute; top: calc(100% + 6px); z-index: 40; min-width: 150px; padding: 6px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.25); display: flex; flex-direction: column; }
+.send-pop[hidden] { display: none; }
+.send-top .send-pop { right: 0; }
+.send-bottom .send-pop { left: 50%; transform: translateX(-50%); }
+.send-pop button, .send-pop a { display: block; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; font-size: 14px; text-align: left; text-decoration: none; cursor: pointer; }
+.send-pop button:hover, .send-pop a:hover { background: var(--note); }
