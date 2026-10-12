@@ -29,12 +29,15 @@ const { post, category, prev, next } = Astro.props;
 const { Content, headings } = await render(post);
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const pageUrl = new URL(postUrl(post), Astro.site).href;
+// 글의 첫 사진을 공유 미리보기 사진으로 사용합니다.
+const firstImage = post.body?.match(/<img[^>]+src="([^"]+)"/)?.[1] ?? post.body?.match(/!\[[^\]]*\]\(([^)\s]+)/)?.[1];
 ---
 <Base
   title={post.data.title}
   description={post.data.summary || undefined}
   current={category.slug}
   article={{ keywords: post.data.tags, modified: post.data.updated, section: category.name }}
+  image={firstImage && (firstImage.startsWith("/") ? url(firstImage) : firstImage)}
 >
   <article>
     <p class="meta"><a href={url(`/${category.slug}/`)}>{category.name}</a></p>

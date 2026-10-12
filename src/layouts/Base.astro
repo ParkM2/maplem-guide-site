@@ -11,8 +11,17 @@ interface Props {
   current?: string;
   // 공략 글: 키워드(해시태그)와 날짜를 검색엔진이 읽을 수 있게 넣습니다.
   article?: { keywords: string[]; modified: Date; section?: string };
+  // 카카오톡, 네이버 등에 링크를 공유할 때 보이는 미리보기 사진 (없으면 첫 화면 대표 그림)
+  image?: string;
+  // 검색 결과에 나오지 않아야 하는 페이지 (404, 검색 결과 화면)
+  noindex?: boolean;
 }
-const { title, description = SITE_DESC, current, article } = Astro.props;
+const { title, description = SITE_DESC, current, article, image = url('/home/keyart.jpg'), noindex } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const ogImage = new URL(image, Astro.site).href;
+// 구글 서치 콘솔, 네이버 서치어드바이저 소유 확인 코드 (Vercel 환경 변수에 넣으면 자동으로 붙습니다)
+const googleVerify = process.env.GOOGLE_SITE_VERIFICATION;
+const naverVerify = process.env.NAVER_SITE_VERIFICATION;
 const categories = await getCategories();
 const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
 ---
@@ -24,6 +33,12 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>{pageTitle}</title>
   <meta name="description" content={description} />
+  {noindex && <meta name="robots" content="noindex" />}
+  {googleVerify && <meta name="google-site-verification" content={googleVerify} />}
+  {naverVerify && <meta name="naver-site-verification" content={naverVerify} />}
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta property="og:title" content={pageTitle} />
   <meta property="og:description" content={description} />
   <meta property="og:type" content={article ? 'article' : 'website'} />
@@ -43,11 +58,13 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
       dateModified: article.modified.toISOString(),
       articleSection: article.section,
       inLanguage: 'ko',
-      mainEntityOfPage: new URL(Astro.url.pathname, Astro.site).href,
+      mainEntityOfPage: canonical,
+      image: ogImage,
       publisher: { '@type': 'Organization', name: SITE_NAME },
     }).replace(/</g, '\\u003c')} />
   )}
-  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+  <link rel="canonical" href={canonical} />
+  <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={url('/rss.xml')} />
   <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
