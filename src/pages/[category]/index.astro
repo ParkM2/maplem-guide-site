@@ -24,9 +24,11 @@ const { category, posts } = Astro.props;
     <ul class="post-list">
       {posts.map((p) => (
         <li>
-          <a href={postUrl(p)}>{p.data.title}</a>
-          {p.data.summary && <span class="summary">{p.data.summary}</span>}
-          <span class="meta">{fmtDate(p.data.updated)} 수정{p.data.patch && ` · ${p.data.patch} 기준`}</span>
+          <a href={postUrl(p)}>
+            <span class="title">{p.data.title}</span>
+            {p.data.summary && <span class="summary">{p.data.summary}</span>}
+            <span class="meta">{fmtDate(p.data.updated)} 수정{p.data.patch && ` · ${p.data.patch} 기준`}</span>
+          </a>
         </li>
       ))}
     </ul>

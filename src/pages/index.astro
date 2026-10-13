@@ -17,8 +17,10 @@ const recent = [...posts].sort((a, b) => b.data.updated.valueOf() - a.data.updat
       <ul class="post-list">
         {recent.map((p) => (
           <li>
-            <a href={postUrl(p)}>{p.data.title}</a>
-            <span class="meta">{categories.find((c) => c.slug === p.data.category)?.name} · {fmtDate(p.data.updated)}</span>
+            <a href={postUrl(p)}>
+              <span class="title">{p.data.title}</span>
+              <span class="meta">{categories.find((c) => c.slug === p.data.category)?.name} · {fmtDate(p.data.updated)}</span>
+            </a>
           </li>
         ))}
       </ul>

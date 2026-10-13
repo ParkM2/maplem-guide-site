@@ -72,10 +72,13 @@ p { margin: 0 0 12px; }
 
 /* 글 목록 */
 .post-list { list-style: none; padding: 0; margin: 16px 0 0; }
-.post-list li { display: flex; flex-direction: column; gap: 2px; padding: 14px 0; border-top: 1px solid var(--rule); }
+.post-list li { border-top: 1px solid var(--rule); }
 .post-list li:last-child { border-bottom: 1px solid var(--rule); }
-.post-list a { font-weight: 600; text-decoration: none; }
-.post-list a:hover { color: var(--accent); }
+/* 제목, 한 줄 요약, 날짜를 한 묶음으로: 어디를 눌러도 글로 갑니다 */
+.post-list a { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; margin: 0 -10px; border-radius: 8px; text-decoration: none; color: inherit; }
+.post-list a:hover { background: var(--note); }
+.post-list .title { font-weight: 600; }
+.post-list a:hover .title { color: var(--accent); }
 .post-list .summary { font-size: 15px; color: var(--muted); }
 
 /* 공략 글 */
