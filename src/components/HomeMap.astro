@@ -14,12 +14,34 @@ const [ix, iy, iw, ih] = data.image;
 const [cx, cy, cw, ch] = data.icon;
 // 그림에 자리가 있는 분류만 그림 위 버튼으로, 나머지(나중에 추가한 분류)는 아래 버튼 줄에 보여 줍니다.
 const onMap = categories.filter((c) => buttons[c.slug]);
+// 이벤트: 버튼에 마우스를 올리면 폭죽이 터지면서 이벤트 그림이 그림 자리에 나타납니다.
+const POP = 'event';
+const COLORS = ['#ffd23f', '#ff5fa2', '#4fd1ff', '#7dff6a', '#ff8a3d', '#c77dff'];
+const bursts = [
+  [400, 230, 0], [890, 210, 0.18], [640, 360, 0.36], [450, 490, 0.54], [880, 480, 0.72], [640, 190, 0.9],
+].map(([x, y, delay], i) => ({
+  x, y, delay,
+  rays: Array.from({ length: 12 }, (_, k) => {
+    const a = (k / 12) * Math.PI * 2 + i * 0.3;
+    return { x1: x + Math.cos(a) * 12, y1: y + Math.sin(a) * 12, x2: x + Math.cos(a) * 85, y2: y + Math.sin(a) * 85, c: COLORS[(k + i) % COLORS.length] };
+  }),
+}));
 ---
 <section class="home-map" aria-label="분류 바로가기">
   <svg viewBox="0 0 1280 720" class="map-full" role="img" aria-label="메이플스토리M 캐릭터 그림과 분류 버튼">
     <image href={url('/home/keyart.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" />
     <image href={url('/home/meso.png')} x={cx} y={cy} width={cw} height={ch} class="pixel" />
-    {onMap.map((c) => (
+    {onMap.map((c) => c.slug === POP ? (
+      <g class={`hl hl-${c.slug} pop`} aria-hidden="true">
+        <image href={url('/home/event.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" class="pop-img" />
+        {bursts.map((b) => (
+          <g class="fw" style={`--d:${b.delay}s`}>
+            {b.rays.map((r) => <line x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} stroke={r.c} pathLength="1" />)}
+            <circle cx={b.x} cy={b.y} r="7" />
+          </g>
+        ))}
+      </g>
+    ) : (
       <g class={`hl hl-${c.slug}`} aria-hidden="true">
         {shapes[c.slug].map((s) =>
           s.t === 'ellipse' ? (
@@ -47,7 +69,17 @@ const onMap = categories.filter((c) => buttons[c.slug]);
   <svg viewBox={`${ix} ${iy} ${iw} ${ih}`} class="map-mobile" aria-hidden="true">
     <image href={url('/home/keyart.jpg')} x={ix} y={iy} width={iw} height={ih} />
     <image href={url('/home/meso.png')} x={cx} y={cy} width={cw} height={ch} class="pixel" />
-    {onMap.map((c) => (
+    {onMap.map((c) => c.slug === POP ? (
+      <g class={`hl hl-${c.slug} pop`}>
+        <image href={url('/home/event.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" class="pop-img" />
+        {bursts.map((b) => (
+          <g class="fw" style={`--d:${b.delay}s`}>
+            {b.rays.map((r) => <line x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} stroke={r.c} pathLength="1" />)}
+            <circle cx={b.x} cy={b.y} r="7" />
+          </g>
+        ))}
+      </g>
+    ) : (
       <g class={`hl hl-${c.slug}`}>
         {shapes[c.slug].filter((s) => s.t !== 'line').map((s) =>
           s.t === 'ellipse' ? (
