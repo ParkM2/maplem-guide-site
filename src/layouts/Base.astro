@@ -20,8 +20,14 @@ const { title, description = SITE_DESC, current, article, image = url('/home/key
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL(image, Astro.site).href;
 // 구글 서치 콘솔, 네이버 서치어드바이저 소유 확인 코드 (Vercel 환경 변수에 넣으면 자동으로 붙습니다)
-const googleVerify = process.env.GOOGLE_SITE_VERIFICATION || 'OpqwGAufo8fhKOXIiACfRUIT5mphYU_-Lo6WDW8lTqg';
-const naverVerify = process.env.NAVER_SITE_VERIFICATION || 'a44b94690a02b3cba9a0ab63727d13d7a89eebdb';
+// 구글 서치 콘솔 확인 코드: 예전 vercel.app 주소용 + 새 도메인(maplem-guide.co.kr)용
+const googleVerify = process.env.GOOGLE_SITE_VERIFICATION
+  ? [process.env.GOOGLE_SITE_VERIFICATION]
+  : ['OpqwGAufo8fhKOXIiACfRUIT5mphYU_-Lo6WDW8lTqg', 'sZnnN_BX-p5WLxQzaMrLCs8tMBuLkv5--JMH1s7qBI4'];
+// 네이버 서치어드바이저 확인 코드: 예전 vercel.app 주소용 + 새 도메인용
+const naverVerify = process.env.NAVER_SITE_VERIFICATION
+  ? [process.env.NAVER_SITE_VERIFICATION]
+  : ['a44b94690a02b3cba9a0ab63727d13d7a89eebdb', '9f52978e655f4af4d74a90075ebfdf82aa1e2c74'];
 const categories = await getCategories();
 const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
 ---
@@ -34,8 +40,8 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
   <title>{pageTitle}</title>
   <meta name="description" content={description} />
   {noindex && <meta name="robots" content="noindex" />}
-  {googleVerify && <meta name="google-site-verification" content={googleVerify} />}
-  {naverVerify && <meta name="naver-site-verification" content={naverVerify} />}
+  {googleVerify.map((code) => <meta name="google-site-verification" content={code} />)}
+  {naverVerify.map((code) => <meta name="naver-site-verification" content={code} />)}
   <meta property="og:url" content={canonical} />
   <meta property="og:image" content={ogImage} />
   <meta name="twitter:card" content="summary_large_image" />
