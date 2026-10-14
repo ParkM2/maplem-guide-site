@@ -2,8 +2,8 @@
 
 메이플스토리M 공략을 모아 보여 주는 사이트입니다. [Astro](https://astro.build)로 만들고 [Vercel](https://vercel.com)에 배포합니다.
 
-- 사이트: https://maplem-guide-site.vercel.app
-- 글쓰기: https://maplem-guide-site.vercel.app/admin/ (비밀번호로 로그인)
+- 사이트: https://maplem-guide.co.kr
+- 글쓰기: https://maplem-guide.co.kr/admin/ (비밀번호로 로그인)
 
 ## 글 쓰는 방법
 

@@ -7,12 +7,8 @@ import rehypeMedia from './src/plugins/rehype-media.mjs';
 // GitHub Pages처럼 하위 경로에 올릴 때만 BASE_PATH를 지정합니다. 예: BASE_PATH=/maplem-guide-site
 const base = process.env.BASE_PATH || '/';
 
-// Vercel은 빌드할 때 VERCEL_PROJECT_PRODUCTION_URL(예: maplem-guide-site.vercel.app)을 넣어 줍니다.
-// 개인 도메인을 연결하면 SITE_URL 환경 변수로 덮어쓰면 됩니다.
-const site =
-  process.env.SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
-  'https://maplem-guide-site.vercel.app';
+// 사이트 대표 주소(검색엔진·공유 미리보기에 쓰임). 다른 주소로 바꿀 때만 SITE_URL 환경 변수로 덮어씁니다.
+const site = process.env.SITE_URL || 'https://maplem-guide.co.kr';
 
 export default defineConfig({
   site,
