@@ -18,14 +18,19 @@ if (ready) {
   try {
     await ensureBoard();
     const db = sql();
-    [{ n: total }] = await db`select count(*)::int as n from board_posts where not notice`;
-    // 공지는 모든 쪽 맨 위에 고정
-    notices = await db`select id, created, title, images, comments, views from board_posts where notice order by id desc`;
-    posts = await db`
-      select p.id, p.created, p.name, p.secret, p.title, p.images, p.comments, p.views,
-             exists (select 1 from board_comments c where c.post_id = p.id and c.admin) as answered
-      from board_posts p where not p.notice order by p.id desc
-      limit ${LIMITS.perPage} offset ${(page - 1) * LIMITS.perPage}`;
+    // 세 질문을 한꺼번에 보내고 답을 같이 기다립니다(하나씩 기다리는 것보다 빠름).
+    let count: any[];
+    [count, notices, posts] = await Promise.all([
+      db`select count(*)::int as n from board_posts where not notice`,
+      // 공지는 모든 쪽 맨 위에 고정
+      db`select id, created, title, images, comments, views from board_posts where notice order by id desc`,
+      db`
+        select p.id, p.created, p.name, p.secret, p.title, p.images, p.comments, p.views,
+               exists (select 1 from board_comments c where c.post_id = p.id and c.admin) as answered
+        from board_posts p where not p.notice order by p.id desc
+        limit ${LIMITS.perPage} offset ${(page - 1) * LIMITS.perPage}`,
+    ]);
+    total = count[0].n;
   } catch (e) {
     error = '게시판을 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.';
   }
