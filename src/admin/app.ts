@@ -12,6 +12,7 @@ import { gfm, gfmHtml } from 'micromark-extension-gfm';
 import { Placeholder } from '@tiptap/extensions';
 import { openImageEditor } from './image-editor';
 import { loadStats } from './stats';
+import { loadBoard } from './board';
 
 // 예전에 마크다운으로 쓴 글은 HTML로 바꿔서 편집기에 넣습니다 (사이트와 같은 모양).
 function toHtml(body: string) {
@@ -126,7 +127,7 @@ type Category = { file?: string; name: string; slug: string; description?: strin
 type PostMeta = { file: string; data: Record<string, any> };
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
-const views = ['loading', 'login', 'setup', 'list', 'categories', 'stats', 'editor'] as const;
+const views = ['loading', 'login', 'setup', 'list', 'categories', 'stats', 'board', 'editor'] as const;
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 let categories: Category[] = [];
@@ -1089,6 +1090,10 @@ function route() {
   if (h === 'new') return openEditor(null);
   if (h.startsWith('edit/')) return openEditor(h.slice(5));
   if (h === 'about') return openAbout();
+  if (h === 'board') {
+    show('board');
+    return loadBoard(api);
+  }
   if (h === 'stats') {
     show('stats');
     return loadStats(api);

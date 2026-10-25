@@ -24,6 +24,7 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
       <a href="#categories">분류 관리</a>
       <a href="#about">사이트 소개</a>
       <a href="#stats">방문 통계</a>
+      <a href="#board">질문/의견</a>
       <a href="/" target="_blank" rel="noopener">사이트 보기</a>
       <button type="button" id="logout" class="link">로그아웃</button>
     </nav>
@@ -82,6 +83,14 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
   </section>
 
   <!-- 분류 관리 -->
+  <section id="view-board" class="wr-wrap" hidden>
+    <div class="row between">
+      <h1>질문/의견 게시판</h1>
+      <a href="/board/" target="_blank" rel="noopener">게시판 열기</a>
+    </div>
+    <div id="bd-admin"></div>
+  </section>
+
   <section id="view-stats" class="wr-wrap wide" hidden>
     <div class="row between">
       <h1>방문 통계</h1>

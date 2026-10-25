@@ -130,3 +130,18 @@ export function guard(ctx: APIContext) {
   if (!isLoggedIn(ctx)) return json({ error: '다시 로그인해 주세요.' }, 401);
   return null;
 }
+
+// 게시판 등 다른 기능에서 쓰는 서명 도구
+export const hmac = (value: string) => sign(value);
+export function setSigned(ctx: APIContext, name: string, kind: string, maxAge: number) {
+  ctx.cookies.set(name, token(kind, maxAge), cookieOpts(maxAge, 'lax'));
+}
+export function hasSigned(ctx: APIContext, name: string, kind: string) {
+  return valid(ctx.cookies.get(name)?.value, kind);
+}
+export function signedToken(kind: string, maxAge: number) {
+  return token(kind, maxAge);
+}
+export function checkToken(raw: string, kind: string) {
+  return valid(raw, kind);
+}

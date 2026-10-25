@@ -1,0 +1,163 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../lib/site';
+import { sql } from '../../lib/server/db';
+import { boardReady, canRead, ensureBoard, getPost, isAdmin } from '../../lib/server/board';
+import { bdFull } from '../../lib/board-date';
+
+export const prerender = false;
+
+// 질문/의견 게시판 글 보기
+Astro.response.headers.set('cache-control', 'no-store');
+if (!boardReady()) return Astro.redirect(url('/board/'));
+await ensureBoard();
+const post = await getPost(Number(Astro.params.id));
+if (!post) {
+  Astro.response.status = 404;
+}
+const admin = isAdmin(Astro);
+const open = post ? canRead(Astro, post) : false;
+let images: any[] = [];
+let comments: any[] = [];
+if (post && open) {
+  const db = sql();
+  await db`update board_posts set views = views + 1 where id = ${post.id}`;
+  post.views += 1;
+  images = await db`select id, width, height from board_images where post_id = ${post.id} order by ord`;
+  comments = await db`select id, created, name, admin, body from board_comments where post_id = ${post.id} order by id`;
+}
+const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
+---
+<Base title={post ? (open ? post.title : '비밀글') : '없는 글'} current="board" noindex={!post || post.secret}>
+  <p class="bd-back"><a href={url('/board/')}>← 질문/의견 게시판</a></p>
+
+  {!post && (
+    <p class="bd-empty">지워졌거나 없는 글이에요.</p>
+  )}
+
+  {post && !open && (
+    <section class="bd-locked">
+      <h1>🔒 비밀글이에요</h1>
+      <p class="bd-meta">{post.name} · {bdFull(post.created)}</p>
+      <p>글을 쓸 때 넣은 비밀번호를 입력하면 볼 수 있어요.</p>
+      <form id="bd-unlock" class="bd-inline" data-id={post.id}>
+        <input type="password" name="pw" aria-label="비밀번호" placeholder="비밀번호" required autocomplete="current-password" />
+        <button class="bd-btn primary" type="submit">열기</button>
+      </form>
+      <p class="bd-msg" role="alert" hidden></p>
+    </section>
+  )}
+
+  {post && open && (
+    <article class="bd-post" data-id={post.id}>
+      <header>
+        <h1>{post.secret && <span class="bd-lock" title="비밀글">🔒 </span>}{post.title}</h1>
+        <p class="bd-meta">{post.name} · {bdFull(post.created)} · 조회 {post.views}</p>
+      </header>
+      {photoFail > 0 && <p class="bd-msg">사진 {photoFail}장을 올리지 못했어요.</p>}
+      <div class="bd-body">{post.body}</div>
+      {images.length > 0 && (
+        <div class="bd-images">
+          {images.map((im) => (
+            <a href={url(`/api/board/photo/${im.id}`)} target="_blank" rel="noopener">
+              <img src={url(`/api/board/photo/${im.id}`)} width={im.width ?? undefined} height={im.height ?? undefined} loading="lazy" decoding="async" alt="" />
+            </a>
+          ))}
+        </div>
+      )}
+      <div class="bd-tools">
+        <button type="button" class="bd-btn small" data-del="post" data-id={post.id}>글 지우기</button>
+      </div>
+
+      <section class="bd-comments" aria-label="댓글">
+        <h2>댓글 {comments.length}</h2>
+        {comments.length > 0 && (
+          <ul>
+            {comments.map((c) => (
+              <li class:list={{ mine: c.admin }}>
+                <div class="bd-cmeta">
+                  {c.admin ? <span class="bd-badge">관리자</span> : <b>{c.name}</b>}
+                  <span>{bdFull(c.created)}</span>
+                  <button type="button" class="link" data-del="comment" data-id={c.id} data-admin={c.admin ? '1' : undefined}>지우기</button>
+                </div>
+                <div class="bd-body">{c.body}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form id="bd-comment" class="bd-form" data-post={post.id} novalidate>
+          {!admin && (
+            <div class="bd-row2">
+              <input name="name" maxlength="20" placeholder="작성자명" aria-label="작성자명" required autocomplete="nickname" />
+              <input name="pw" type="password" maxlength="50" placeholder="비밀번호 (지울 때 필요)" aria-label="비밀번호" required autocomplete="new-password" />
+            </div>
+          )}
+          {admin && <p class="hint">관리자로 댓글을 써요.</p>}
+          <textarea name="body" rows="3" maxlength="1000" placeholder="댓글을 남겨 주세요" aria-label="댓글" required></textarea>
+          <input name="website" tabindex="-1" autocomplete="off" class="bd-hp" aria-hidden="true" />
+          <p class="bd-msg" role="alert" hidden></p>
+          <div class="bd-actions"><button type="submit" class="bd-btn primary">댓글 등록</button></div>
+        </form>
+      </section>
+    </article>
+  )}
+</Base>
+
+<script define:vars={{ admin, base: url('/') }}>
+  (function () {
+    var api = base.replace(/\/$/, '') + '/api/board/';
+    var post = function (path, data) {
+      return fetch(api + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.error || '처리하지 못했어요.'); return j; }); });
+    };
+    var say = function (form, text) {
+      var m = form.parentElement.querySelector('.bd-msg[role=alert]');
+      if (form.id === 'bd-comment') m = form.querySelector('.bd-msg');
+      m.textContent = text; m.hidden = !text;
+    };
+
+    var unlock = document.getElementById('bd-unlock');
+    if (unlock) unlock.addEventListener('submit', function (e) {
+      e.preventDefault();
+      post('unlock', { id: Number(unlock.dataset.id), pw: unlock.querySelector('[name=pw]').value })
+        .then(function () { location.reload(); })
+        .catch(function (err) { say(unlock, err.message); });
+    });
+
+    var cf = document.getElementById('bd-comment');
+    var field = function (n) { return cf.querySelector('[name=' + n + ']'); };
+    if (cf) cf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = cf.querySelector('button[type=submit]');
+      if (!admin) {
+        if (!field('name').value.trim()) return say(cf, '작성자명을 입력해 주세요.');
+        if (field('pw').value.length < 4) return say(cf, '비밀번호를 4자 이상 입력해 주세요.');
+      }
+      if (!field('body').value.trim()) return say(cf, '댓글 내용을 입력해 주세요.');
+      btn.disabled = true;
+      post('comment', {
+        post: Number(cf.dataset.post), body: field('body').value, website: field('website').value,
+        name: admin ? '' : field('name').value, pw: admin ? '' : field('pw').value,
+      }).then(function () { location.reload(); })
+        .catch(function (err) { say(cf, err.message); btn.disabled = false; });
+    });
+
+    document.querySelectorAll('[data-del]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var kind = b.dataset.del;
+        var what = kind === 'post' ? '이 글' : '이 댓글';
+        var pw = '';
+        if (admin) {
+          if (!confirm(what + '을 지울까요? 되돌릴 수 없어요.')) return;
+        } else {
+          if (b.dataset.admin) return alert('관리자 댓글은 관리자만 지울 수 있어요.');
+          pw = prompt(what + '을 쓸 때 넣은 비밀번호를 입력해 주세요.');
+          if (!pw) return;
+        }
+        post('remove', { kind: kind, id: Number(b.dataset.id), pw: pw })
+          .then(function () { if (kind === 'post') location.href = base + 'board/'; else location.reload(); })
+          .catch(function (err) { alert(err.message); });
+      });
+    });
+  })();
+</script>

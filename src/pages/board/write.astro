@@ -1,0 +1,152 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../lib/site';
+---
+<Base title="질문/의견 쓰기" current="board" noindex>
+  <h1>질문/의견 쓰기</h1>
+  <form id="bd-form" class="bd-form" novalidate>
+    <div class="bd-row2">
+      <label><span>작성자명 <span class="req">필수</span></span>
+        <input name="name" maxlength="20" autocomplete="nickname" required />
+      </label>
+      <label><span>비밀번호 <span class="req">필수</span></span>
+        <input name="pw" type="password" minlength="4" maxlength="50" autocomplete="new-password" required />
+      </label>
+    </div>
+    <p class="hint">비밀번호는 글을 지우거나 비밀글을 다시 볼 때 써요. 잊으면 찾을 수 없어요.</p>
+
+    <fieldset class="bd-open">
+      <legend>공개 여부</legend>
+      <label><input type="radio" name="secret" value="0" checked /> 공개글</label>
+      <label><input type="radio" name="secret" value="1" /> 비밀글 <span class="hint">(글쓴이와 관리자만 볼 수 있어요)</span></label>
+    </fieldset>
+
+    <label><span>제목 <span class="req">필수</span></span>
+      <input name="title" maxlength="100" required />
+    </label>
+    <label><span>내용 <span class="req">필수</span></span>
+      <textarea name="body" rows="10" maxlength="5000" required></textarea>
+    </label>
+
+    <div class="bd-photos">
+      <div class="row">
+        <span>사진 <span class="hint">(최대 5장, 1MB가 넘는 사진은 자동으로 줄여서 올려요)</span></span>
+        <label class="bd-btn">사진 고르기<input id="bd-files" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden /></label>
+      </div>
+      <ul id="bd-thumbs" class="bd-thumbs"></ul>
+    </div>
+
+    <!-- 사람에게는 보이지 않는 칸 (자동 등록 프로그램 거르기) -->
+    <input name="website" tabindex="-1" autocomplete="off" class="bd-hp" aria-hidden="true" />
+
+    <p id="bd-msg" class="bd-msg" role="alert" hidden></p>
+    <div class="bd-actions">
+      <a class="bd-btn" href={url('/board/')}>취소</a>
+      <button type="submit" class="bd-btn primary" id="bd-submit">등록</button>
+    </div>
+  </form>
+</Base>
+
+<script>
+  import { compressImage, type Prepared } from '../../lib/board-photo';
+
+  const MAX = 5;
+  const form = document.querySelector<HTMLFormElement>('#bd-form')!;
+  const files = document.querySelector<HTMLInputElement>('#bd-files')!;
+  const thumbs = document.querySelector<HTMLUListElement>('#bd-thumbs')!;
+  const msg = document.querySelector<HTMLParagraphElement>('#bd-msg')!;
+  const submit = document.querySelector<HTMLButtonElement>('#bd-submit')!;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  let photos: Prepared[] = [];
+  let busy = 0;
+
+  const say = (text: string) => {
+    msg.textContent = text;
+    msg.hidden = !text;
+  };
+  const mb = (n: number) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`);
+
+  function render() {
+    thumbs.innerHTML = '';
+    photos.forEach((p, i) => {
+      const li = document.createElement('li');
+      const img = document.createElement('img');
+      img.src = p.preview;
+      img.alt = '';
+      const info = document.createElement('span');
+      info.textContent = p.compressed ? `${mb(p.original)} → ${mb(p.blob.size)}` : mb(p.blob.size);
+      if (p.compressed) info.className = 'small';
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = '×';
+      del.setAttribute('aria-label', '이 사진 빼기');
+      del.onclick = () => {
+        URL.revokeObjectURL(p.preview);
+        photos.splice(i, 1);
+        render();
+      };
+      li.append(img, info, del);
+      thumbs.append(li);
+    });
+  }
+
+  files.addEventListener('change', async () => {
+    const picked = Array.from(files.files ?? []);
+    files.value = '';
+    const room = MAX - photos.length;
+    if (picked.length > room) say(`사진은 ${MAX}장까지 올릴 수 있어요. 앞의 ${Math.max(room, 0)}장만 넣었어요.`);
+    else say('');
+    busy++;
+    submit.disabled = true;
+    for (const f of picked.slice(0, Math.max(room, 0))) {
+      try {
+        photos.push(await compressImage(f));
+        render();
+      } catch {
+        say(`"${f.name}"은(는) 열 수 없는 사진이에요. JPG, PNG, GIF, WEBP 사진을 골라 주세요.`);
+      }
+    }
+    busy--;
+    submit.disabled = busy > 0;
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const d = new FormData(form);
+    const v = (k: string) => String(d.get(k) ?? '').trim();
+    if (!v('name')) return say('작성자명을 입력해 주세요.');
+    if (String(d.get('pw') ?? '').length < 4) return say('비밀번호를 4자 이상 입력해 주세요.');
+    if (!v('title')) return say('제목을 입력해 주세요.');
+    if (!v('body')) return say('내용을 입력해 주세요.');
+    say('');
+    submit.disabled = true;
+    submit.textContent = '올리는 중…';
+    try {
+      const res = await fetch(`${base}/api/board/write`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: v('name'), pw: String(d.get('pw')), title: v('title'), body: String(d.get('body') ?? ''),
+          secret: d.get('secret') === '1', website: v('website'),
+        }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(out.error || '저장하지 못했어요.');
+      let failed = 0;
+      for (const [i, p] of photos.entries()) {
+        submit.textContent = `사진 올리는 중 (${i + 1}/${photos.length})`;
+        const r = await fetch(`${base}/api/board/photo?post=${out.id}&t=${encodeURIComponent(out.t)}&w=${p.width}&h=${p.height}`, {
+          method: 'POST',
+          headers: { 'content-type': p.blob.type || 'application/octet-stream' },
+          body: p.blob,
+        }).catch(() => null);
+        if (!r || !r.ok) failed++;
+      }
+      location.href = `${base}/board/${out.id}/${failed ? `?photo_fail=${failed}` : ''}`;
+    } catch (err) {
+      say((err as Error).message || '저장하지 못했어요. 잠시 뒤에 다시 눌러 주세요.');
+      submit.disabled = false;
+      submit.textContent = '등록';
+    }
+  });
+</script>

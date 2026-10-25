@@ -222,3 +222,6 @@ body.admin { min-height: 100vh; }
 .ed-content img.drop-right { box-shadow: 5px 0 0 var(--accent); }
 .ed-content .img-row img { cursor: grab; }
 .ie-opts small { flex-basis: 100%; }
+.wr-list .bd-c { color: var(--accent); }
+.wr-list .bd-ok { color: var(--accent); font-weight: 600; }
+.wr-list .bd-wait { color: var(--danger); font-weight: 600; }

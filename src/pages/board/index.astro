@@ -1,0 +1,73 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../lib/site';
+import { sql } from '../../lib/server/db';
+import { LIMITS, boardReady, ensureBoard } from '../../lib/server/board';
+import { bdShort } from '../../lib/board-date';
+
+export const prerender = false;
+
+// 질문/의견 게시판 목록
+const page = Math.max(1, Math.floor(Number(Astro.url.searchParams.get('page')) || 1));
+let posts: any[] = [];
+let total = 0;
+let error = '';
+const ready = boardReady();
+if (ready) {
+  try {
+    await ensureBoard();
+    const db = sql();
+    [{ n: total }] = await db`select count(*)::int as n from board_posts`;
+    posts = await db`
+      select p.id, p.created, p.name, p.secret, p.title, p.images, p.comments, p.views,
+             exists (select 1 from board_comments c where c.post_id = p.id and c.admin) as answered
+      from board_posts p order by p.id desc
+      limit ${LIMITS.perPage} offset ${(page - 1) * LIMITS.perPage}`;
+  } catch (e) {
+    error = '게시판을 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.';
+  }
+}
+const pages = Math.max(1, Math.ceil(total / LIMITS.perPage));
+const from = Math.max(1, Math.min(page - 4, pages - 9));
+const nums = Array.from({ length: Math.min(10, pages - from + 1) }, (_, i) => from + i);
+const pageUrl = (n: number) => url(`/board/${n > 1 ? `?page=${n}` : ''}`);
+Astro.response.headers.set('cache-control', 'no-store');
+---
+<Base title="질문/의견 게시판" description="메이플스토리M 공략노트에 궁금한 점이나 의견을 남겨 주세요." current="board">
+  <div class="bd-top">
+    <h1>질문/의견 게시판</h1>
+    {ready && <a class="bd-btn primary" href={url('/board/write/')}>작성하기</a>}
+  </div>
+  <p class="lead">궁금한 점이나 사이트에 바라는 점을 남겨 주세요. 비밀글은 글쓴이와 관리자만 볼 수 있어요.</p>
+
+  {!ready && <p class="bd-empty">게시판을 준비하고 있어요. 조금만 기다려 주세요.</p>}
+  {error && <p class="bd-empty">{error}</p>}
+  {ready && !error && posts.length === 0 && <p class="bd-empty">아직 글이 없어요. 첫 글을 남겨 주세요.</p>}
+
+  {posts.length > 0 && (
+    <ul class="bd-list">
+      {posts.map((p) => (
+        <li>
+          <a href={url(`/board/${p.id}/`)}>
+            <span class="bd-title">
+              {p.secret && <span class="bd-lock" title="비밀글">🔒</span>}
+              <span class="t">{p.title}</span>
+              {p.images > 0 && <span class="bd-pic" title={`사진 ${p.images}장`}>📷</span>}
+              {p.comments > 0 && <span class="bd-cnt">[{p.comments}]</span>}
+              {p.answered && <span class="bd-done">답변 완료</span>}
+            </span>
+            <span class="bd-meta">{p.name} · {bdShort(p.created)} · 조회 {p.views}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  {pages > 1 && (
+    <nav class="bd-pages" aria-label="쪽 이동">
+      {from > 1 && <a href={pageUrl(from - 1)} aria-label="이전 쪽">‹</a>}
+      {nums.map((n) => <a href={pageUrl(n)} aria-current={n === page ? 'page' : undefined}>{n}</a>)}
+      {nums[nums.length - 1] < pages && <a href={pageUrl(nums[nums.length - 1] + 1)} aria-label="다음 쪽">›</a>}
+    </nav>
+  )}
+</Base>
