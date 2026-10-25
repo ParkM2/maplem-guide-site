@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { url } from '../../lib/site';
 import { sql } from '../../lib/server/db';
-import { LIMITS, boardReady, ensureBoard } from '../../lib/server/board';
+import { LIMITS, boardReady, canRead, ensureBoard } from '../../lib/server/board';
 import { bdShort } from '../../lib/board-date';
 
 export const prerender = false;
@@ -58,13 +58,13 @@ Astro.response.headers.set('cache-control', 'no-store');
               {p.images > 0 && <span class="bd-pic" title={`사진 ${p.images}장`}>📷</span>}
               {p.comments > 0 && <span class="bd-cnt">[{p.comments}]</span>}
             </span>
-            <span class="bd-meta">관리자 · {bdShort(p.created)} · 조회 {p.views}</span>
+            <span class="bd-meta">관리자 · {bdShort(p.created)}</span>
           </a>
         </li>
       ))}
       {posts.map((p) => (
         <li>
-          <a href={url(`/board/${p.id}/`)}>
+          <a href={url(`/board/${p.id}/`)} data-lock={p.secret && !canRead(Astro, p) ? p.id : undefined}>
             <span class="bd-title">
               {p.secret && <span class="bd-lock" title="비밀글">🔒</span>}
               <span class="t">{p.title}</span>
@@ -72,7 +72,7 @@ Astro.response.headers.set('cache-control', 'no-store');
               {p.comments > 0 && <span class="bd-cnt">[{p.comments}]</span>}
               {p.answered && <span class="bd-done">답변 완료</span>}
             </span>
-            <span class="bd-meta">{p.name} · {bdShort(p.created)} · 조회 {p.views}</span>
+            <span class="bd-meta">{p.name} · {bdShort(p.created)}</span>
           </a>
         </li>
       ))}
@@ -86,4 +86,58 @@ Astro.response.headers.set('cache-control', 'no-store');
       {nums[nums.length - 1] < pages && <a href={pageUrl(nums[nums.length - 1] + 1)} aria-label="다음 쪽">›</a>}
     </nav>
   )}
+
+  <!-- 비밀글을 누르면 뜨는 비밀번호 창 -->
+  <dialog id="bd-pw" class="bd-dialog" aria-labelledby="bd-pw-title">
+    <form method="dialog" id="bd-pw-form">
+      <h2 id="bd-pw-title">🔒 비밀글이에요</h2>
+      <p>글을 쓸 때 넣은 비밀번호를 입력해 주세요.</p>
+      <input type="password" name="pw" aria-label="비밀번호" placeholder="비밀번호" autocomplete="current-password" required />
+      <p class="bd-msg" role="alert" hidden></p>
+      <div class="bd-actions">
+        <button type="button" class="bd-btn" value="cancel" id="bd-pw-cancel">취소</button>
+        <button type="submit" class="bd-btn primary">열기</button>
+      </div>
+    </form>
+  </dialog>
 </Base>
+
+<script define:vars={{ base: url('/') }}>
+  (function () {
+    var dlg = document.getElementById('bd-pw');
+    var form = document.getElementById('bd-pw-form');
+    var input = form.querySelector('[name=pw]');
+    var msg = form.querySelector('.bd-msg');
+    var target = null;
+    var say = function (t) { msg.textContent = t; msg.hidden = !t; };
+    document.querySelectorAll('a[data-lock]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        if (!dlg.showModal) return; // 오래된 브라우저는 글 화면에서 비밀번호를 받음
+        e.preventDefault();
+        target = a;
+        input.value = '';
+        say('');
+        dlg.showModal();
+        input.focus();
+      });
+    });
+    document.getElementById('bd-pw-cancel').addEventListener('click', function () { dlg.close(); });
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!input.value) return say('비밀번호를 입력해 주세요.');
+      var btn = form.querySelector('[type=submit]');
+      btn.disabled = true;
+      fetch(base.replace(/\/$/, '') + '/api/board/unlock', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: Number(target.dataset.lock), pw: input.value }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          if (!r.ok) throw new Error(j.error || '열지 못했어요.');
+          location.href = target.href;
+        });
+      }).catch(function (err) { say(err.message); input.select(); })
+        .finally(function () { btn.disabled = false; });
+    });
+  })();
+</script>

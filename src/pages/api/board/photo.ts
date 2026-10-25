@@ -29,7 +29,7 @@ export const POST: APIRoute = async (ctx) => {
     const [row] = await db`
       with p as (update board_posts set images = images + 1 where id = ${id} and images < ${maxCount} returning images)
       insert into board_images (post_id, ord, mime, width, height, data)
-      select ${id}, p.images, ${mime}, ${dim('w')}, ${dim('h')}, ${Buffer.from(buf)} from p
+      select ${id}, (select coalesce(max(ord), 0) + 1 from board_images where post_id = ${id}), ${mime}, ${dim('w')}, ${dim('h')}, ${Buffer.from(buf)} from p
       returning id`;
     if (!row) return json({ error: `사진은 ${maxCount}장까지 올릴 수 있어요.` }, 400);
     return json({ ok: true, id: row.id });

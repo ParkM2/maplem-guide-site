@@ -23,7 +23,7 @@ if (post && open) {
   const db = sql();
   await db`update board_posts set views = views + 1 where id = ${post.id}`;
   post.views += 1;
-  images = await db`select id, width, height from board_images where post_id = ${post.id} order by ord`;
+  images = await db`select id, width, height from board_images where post_id = ${post.id} order by ord, id`;
   comments = await db`select id, created, name, admin, body from board_comments where post_id = ${post.id} order by id`;
 }
 const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
@@ -52,7 +52,7 @@ const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
     <article class="bd-post" data-id={post.id}>
       <header>
         <h1>{post.notice && <span class="bd-tag">공지</span>}{post.secret && <span class="bd-lock" title="비밀글">🔒 </span>}{post.title}</h1>
-        <p class="bd-meta">{post.name} · {bdFull(post.created)} · 조회 {post.views}</p>
+        <p class="bd-meta">{post.name} · {bdFull(post.created)}{post.updated && ` · 수정 ${bdFull(post.updated)}`}</p>
       </header>
       {photoFail > 0 && <p class="bd-msg">사진 {photoFail}장을 올리지 못했어요.</p>}
       <div class="bd-body">{post.body}</div>
@@ -66,6 +66,7 @@ const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
         </div>
       )}
       <div class="bd-tools" hidden={post.notice && !admin}>
+        <button type="button" class="bd-btn small" data-edit={post.id}>글 수정</button>
         <button type="button" class="bd-btn small" data-del="post" data-id={post.id}>글 지우기</button>
       </div>
 
@@ -140,6 +141,18 @@ const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
         name: admin ? '' : field('name').value, pw: admin ? '' : field('pw').value,
       }).then(function () { location.reload(); })
         .catch(function (err) { say(cf, err.message); btn.disabled = false; });
+    });
+
+    var ed = document.querySelector('[data-edit]');
+    if (ed) ed.addEventListener('click', function () {
+      var pw = '';
+      if (!admin) {
+        pw = prompt('글을 쓸 때 넣은 비밀번호를 입력해 주세요.');
+        if (!pw) return;
+      }
+      post('edit-auth', { id: Number(ed.dataset.edit), pw: pw })
+        .then(function () { location.href = base + 'board/write/?edit=' + ed.dataset.edit; })
+        .catch(function (err) { alert(err.message); });
     });
 
     document.querySelectorAll('[data-del]').forEach(function (b) {

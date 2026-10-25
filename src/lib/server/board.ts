@@ -40,6 +40,7 @@ export function ensureBoard() {
       )`;
     await db`create index if not exists board_posts_created on board_posts (created desc)`;
     await db`alter table board_posts add column if not exists notice boolean not null default false`;
+    await db`alter table board_posts add column if not exists updated timestamptz`;
     await db`
       create table if not exists board_images (
         id serial primary key,
@@ -96,6 +97,16 @@ export function canRead(ctx: Ctx, post: { id: number; secret: boolean }) {
   return !post.secret || isAdmin(ctx) || hasSigned(ctx as APIContext, cookieName(post.id), `bp${post.id}`);
 }
 
+// 글 수정: 비밀번호를 맞히면 30분 동안 수정 화면을 쓸 수 있습니다. 공지는 관리자만.
+const editCookie = (id: number) => `mgs_be${id}`;
+export function grantEdit(ctx: Ctx, id: number) {
+  setSigned(ctx as APIContext, editCookie(id), `be${id}`, 30 * 60);
+}
+export function canEdit(ctx: Ctx, post: { id: number; notice: boolean }) {
+  if (isAdmin(ctx)) return true;
+  return !post.notice && hasSigned(ctx as APIContext, editCookie(post.id), `be${post.id}`);
+}
+
 // 같은 사람이 짧은 시간에 너무 많이 쓰지 못하게 (IP는 그대로 저장하지 않고 서명값으로)
 export function ipKey(ctx: APIContext) {
   const ip = ctx.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || ctx.clientAddress || '';
@@ -111,11 +122,11 @@ export const clean = (v: unknown, max: number) =>
 
 export async function getPost(id: number) {
   if (!Number.isInteger(id) || id <= 0) return null;
-  const [p] = await sql()`select id, created, name, pw, secret, notice, title, body, images, comments, views from board_posts where id = ${id}`;
+  const [p] = await sql()`select id, created, updated, name, pw, secret, notice, title, body, images, comments, views from board_posts where id = ${id}`;
   return (p as unknown as Post) ?? null;
 }
 export type Post = {
-  id: number; created: Date; name: string; pw: string; secret: boolean; notice: boolean; title: string; body: string;
+  id: number; created: Date; updated: Date | null; name: string; pw: string; secret: boolean; notice: boolean; title: string; body: string;
   images: number; comments: number; views: number;
 };
 
