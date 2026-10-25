@@ -8,6 +8,8 @@ const posts = await getPosts();
 const recent = [...posts].sort((a, b) => b.data.updated.valueOf() - a.data.updated.valueOf()).slice(0, 5);
 ---
 <Base>
+  <!-- 첫 화면의 가장 큰 그림을 먼저 받도록 브라우저에 알려 줍니다. -->
+  <link slot="head" rel="preload" as="image" href={url('/home/keyart.webp')} type="image/webp" fetchpriority="high" />
   <HomeMap slot="hero" categories={categories} />
   <h1 class="sr">{SITE_NAME}</h1>
 
