@@ -225,3 +225,22 @@ body.admin { min-height: 100vh; }
 .wr-list .bd-c { color: var(--accent); }
 .wr-list .bd-ok { color: var(--accent); font-weight: 600; }
 .wr-list .bd-wait { color: var(--danger); font-weight: 600; }
+.nt-form { margin: 16px 0 8px; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+.nt-form textarea { font: inherit; line-height: 1.6; resize: vertical; color: var(--ink); }
+.nt-form .hint { margin: 0; }
+.nt-thumbs { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; }
+.nt-thumbs:empty { display: none; }
+.nt-thumbs li { position: relative; width: 96px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.nt-thumbs img { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--rule); }
+.nt-thumbs button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; padding: 0; justify-content: center; border: 0; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; }
+/* 글 순서 끌어서 바꾸기 */
+#post-list.sortable li { display: flex; align-items: stretch; }
+#post-list.sortable li > a { flex: 1; min-width: 0; }
+#post-list .drag { display: flex; align-items: center; justify-content: center; width: 32px; flex-shrink: 0; color: var(--muted); font-size: 18px;
+  cursor: grab; touch-action: none; user-select: none; }
+#post-list .drag:hover { color: var(--ink); background: var(--note); }
+#post-list .drag.off { cursor: default; }
+#post-list .drag.off:hover { background: none; }
+#post-list li.dragging { position: relative; z-index: 1; background: var(--surface); box-shadow: 0 6px 20px rgba(0,0,0,.25); border-radius: 6px; opacity: .95; }
+#post-list li.dragging .drag { cursor: grabbing; }
+.order-bar { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent-soft); font-size: 14px; }

@@ -13,9 +13,9 @@ export const GET: APIRoute = async (ctx) => {
   try {
     await ensureBoard();
     const posts = await sql()`
-      select p.id, p.created, p.name, p.secret, p.title, p.images, p.comments, p.views,
+      select p.id, p.created, p.name, p.secret, p.notice, p.title, p.images, p.comments, p.views,
              exists (select 1 from board_comments c where c.post_id = p.id and c.admin) as answered
-      from board_posts p order by p.id desc limit 300`;
+      from board_posts p order by p.notice desc, p.id desc limit 300`;
     return json({ configured: true, posts });
   } catch (e) {
     return json({ error: String((e as Error).message) }, 502);

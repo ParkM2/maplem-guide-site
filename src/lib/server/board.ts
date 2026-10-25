@@ -13,6 +13,8 @@ export const LIMITS = {
   pwMin: 4,
   pwMax: 50,
   images: 5,
+  noticeImages: 1000, // 공지(관리자)는 사실상 제한 없음
+  noticeBytes: 4 * 1024 * 1024, // 서버 함수가 한 번에 주고받을 수 있는 크기(4.5MB) 안쪽
   imageBytes: 1024 * 1024 + 64 * 1024, // 1MB 넘는 사진은 브라우저에서 줄여서 올립니다 (약간의 여유)
   perPage: 20,
 };
@@ -37,6 +39,7 @@ export function ensureBoard() {
         views integer not null default 0
       )`;
     await db`create index if not exists board_posts_created on board_posts (created desc)`;
+    await db`alter table board_posts add column if not exists notice boolean not null default false`;
     await db`
       create table if not exists board_images (
         id serial primary key,
@@ -108,11 +111,11 @@ export const clean = (v: unknown, max: number) =>
 
 export async function getPost(id: number) {
   if (!Number.isInteger(id) || id <= 0) return null;
-  const [p] = await sql()`select id, created, name, pw, secret, title, body, images, comments, views from board_posts where id = ${id}`;
+  const [p] = await sql()`select id, created, name, pw, secret, notice, title, body, images, comments, views from board_posts where id = ${id}`;
   return (p as unknown as Post) ?? null;
 }
 export type Post = {
-  id: number; created: Date; name: string; pw: string; secret: boolean; title: string; body: string;
+  id: number; created: Date; name: string; pw: string; secret: boolean; notice: boolean; title: string; body: string;
   images: number; comments: number; views: number;
 };
 

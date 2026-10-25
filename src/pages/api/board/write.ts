@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { randomBytes } from 'node:crypto';
 import { json, signedToken } from '../../../lib/server/auth';
 import { sql } from '../../../lib/server/db';
 import { LIMITS, boardReady, clean, ensureBoard, grantAccess, hashPw, ipKey, isAdmin } from '../../../lib/server/board';
@@ -17,6 +18,22 @@ export const POST: APIRoute = async (ctx) => {
   const title = clean(b.title, LIMITS.title).replace(/\s+/g, ' ');
   const body = clean(b.body, LIMITS.body);
   const admin = isAdmin(ctx);
+  // 공지: admin 페이지에서 관리자만. 맨 위에 굵게 고정되고 사진 개수·크기 제한이 없습니다.
+  const notice = admin && Boolean(b.notice);
+  if (notice) {
+    if (!title) return json({ error: '제목을 입력해 주세요.' }, 400);
+    if (!body) return json({ error: '내용을 입력해 주세요.' }, 400);
+    try {
+      await ensureBoard();
+      const [row] = await sql()`
+        insert into board_posts (name, pw, secret, notice, title, body, ip)
+        values ('관리자', ${hashPw(randomBytes(24).toString('base64'))}, false, true, ${title}, ${body}, ${ipKey(ctx)})
+        returning id`;
+      return json({ id: row.id, t: signedToken(`up${row.id}`, 60 * 60) });
+    } catch (e) {
+      return json({ error: String((e as Error).message) }, 502);
+    }
+  }
   if (!name) return json({ error: '작성자명을 입력해 주세요.' }, 400);
   if (!admin && RESERVED.test(name)) return json({ error: '이 작성자명은 쓸 수 없어요.' }, 400);
   if (pw.length < LIMITS.pwMin || pw.length > LIMITS.pwMax) return json({ error: `비밀번호는 ${LIMITS.pwMin}~${LIMITS.pwMax}자로 입력해 주세요.` }, 400);

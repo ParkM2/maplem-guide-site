@@ -51,7 +51,7 @@ const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
   {post && open && (
     <article class="bd-post" data-id={post.id}>
       <header>
-        <h1>{post.secret && <span class="bd-lock" title="비밀글">🔒 </span>}{post.title}</h1>
+        <h1>{post.notice && <span class="bd-tag">공지</span>}{post.secret && <span class="bd-lock" title="비밀글">🔒 </span>}{post.title}</h1>
         <p class="bd-meta">{post.name} · {bdFull(post.created)} · 조회 {post.views}</p>
       </header>
       {photoFail > 0 && <p class="bd-msg">사진 {photoFail}장을 올리지 못했어요.</p>}
@@ -65,7 +65,7 @@ const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
           ))}
         </div>
       )}
-      <div class="bd-tools">
+      <div class="bd-tools" hidden={post.notice && !admin}>
         <button type="button" class="bd-btn small" data-del="post" data-id={post.id}>글 지우기</button>
       </div>
 

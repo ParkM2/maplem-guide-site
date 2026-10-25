@@ -10,6 +10,7 @@ export const prerender = false;
 // 질문/의견 게시판 목록
 const page = Math.max(1, Math.floor(Number(Astro.url.searchParams.get('page')) || 1));
 let posts: any[] = [];
+let notices: any[] = [];
 let total = 0;
 let error = '';
 const ready = boardReady();
@@ -17,11 +18,13 @@ if (ready) {
   try {
     await ensureBoard();
     const db = sql();
-    [{ n: total }] = await db`select count(*)::int as n from board_posts`;
+    [{ n: total }] = await db`select count(*)::int as n from board_posts where not notice`;
+    // 공지는 모든 쪽 맨 위에 고정
+    notices = await db`select id, created, title, images, comments, views from board_posts where notice order by id desc`;
     posts = await db`
       select p.id, p.created, p.name, p.secret, p.title, p.images, p.comments, p.views,
              exists (select 1 from board_comments c where c.post_id = p.id and c.admin) as answered
-      from board_posts p order by p.id desc
+      from board_posts p where not p.notice order by p.id desc
       limit ${LIMITS.perPage} offset ${(page - 1) * LIMITS.perPage}`;
   } catch (e) {
     error = '게시판을 불러오지 못했어요. 잠시 뒤에 다시 열어 주세요.';
@@ -42,10 +45,23 @@ Astro.response.headers.set('cache-control', 'no-store');
 
   {!ready && <p class="bd-empty">게시판을 준비하고 있어요. 조금만 기다려 주세요.</p>}
   {error && <p class="bd-empty">{error}</p>}
-  {ready && !error && posts.length === 0 && <p class="bd-empty">아직 글이 없어요. 첫 글을 남겨 주세요.</p>}
+  {ready && !error && posts.length === 0 && notices.length === 0 && <p class="bd-empty">아직 글이 없어요. 첫 글을 남겨 주세요.</p>}
 
-  {posts.length > 0 && (
+  {(posts.length > 0 || notices.length > 0) && (
     <ul class="bd-list">
+      {notices.map((p) => (
+        <li class="bd-notice">
+          <a href={url(`/board/${p.id}/`)}>
+            <span class="bd-title">
+              <span class="bd-tag">공지</span>
+              <span class="t">{p.title}</span>
+              {p.images > 0 && <span class="bd-pic" title={`사진 ${p.images}장`}>📷</span>}
+              {p.comments > 0 && <span class="bd-cnt">[{p.comments}]</span>}
+            </span>
+            <span class="bd-meta">관리자 · {bdShort(p.created)} · 조회 {p.views}</span>
+          </a>
+        </li>
+      ))}
       {posts.map((p) => (
         <li>
           <a href={url(`/board/${p.id}/`)}>

@@ -329,3 +329,8 @@ body.site input, body.site textarea, body.site [contenteditable="true"] { caret-
 @media (max-width: 560px) {
   .bd-row2 { grid-template-columns: 1fr; }
 }
+.bd-tag { display: inline-block; padding: 0 8px; margin-right: 2px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; line-height: 1.8; vertical-align: .15em; }
+.bd-post h1 .bd-tag { font-size: 15px; margin-right: 8px; }
+.bd-list li.bd-notice { background: var(--accent-soft); }
+.bd-list li.bd-notice a { margin: 0; }
+.bd-list li.bd-notice .t { font-weight: 800; }

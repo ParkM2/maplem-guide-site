@@ -12,7 +12,7 @@ import { gfm, gfmHtml } from 'micromark-extension-gfm';
 import { Placeholder } from '@tiptap/extensions';
 import { openImageEditor } from './image-editor';
 import { loadStats } from './stats';
-import { loadBoard } from './board';
+import { loadBoard, setupNotice } from './board';
 
 // 예전에 마크다운으로 쓴 글은 HTML로 바꿔서 편집기에 넣습니다 (사이트와 같은 모양).
 function toHtml(body: string) {
@@ -212,7 +212,7 @@ async function loadViews() {
   } catch {
     postViews = null;
   }
-  if (!$('#view-list').hidden) renderList();
+  if (!$('#view-list').hidden && !orderDirty) renderList();
 }
 
 // 임시 저장 글은 30일 동안 보관을 권해요. 지나면 표시만 바뀌고 저절로 지워지지는 않아요.
@@ -228,25 +228,119 @@ function renderList() {
   const keep = sel.value;
   sel.innerHTML = `<option value="">전체 분류</option>` + categories.map((c) => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('');
   sel.value = keep;
-  // 임시 저장 글을 맨 위에, 그다음 발행한 글을 수정일 순으로
+  const cat = sel.value;
+  setOrderDirty(false);
+  // 전체 분류: 임시 저장 글을 맨 위에, 그다음 발행한 글을 수정일 순으로
+  // 분류를 고르면: 임시 저장 글 다음에 발행한 글을 사이트와 같은 순서로 (끌어서 순서 바꾸기)
+  const byDate = (a: PostMeta, b: PostMeta) =>
+    String(b.data.savedAt ?? b.data.updated ?? '').localeCompare(String(a.data.savedAt ?? a.data.updated ?? ''));
   const shown = posts
-    .filter((p) => !sel.value || p.data.category === sel.value)
+    .filter((p) => !cat || p.data.category === cat)
     .sort(
       (a, b) =>
         Number(Boolean(b.data.draft)) - Number(Boolean(a.data.draft)) ||
-        String(b.data.savedAt ?? b.data.updated ?? '').localeCompare(String(a.data.savedAt ?? a.data.updated ?? '')),
+        (cat && !a.data.draft ? (Number(a.data.order ?? 100) - Number(b.data.order ?? 100)) : 0) ||
+        byDate(a, b),
     );
+  const sortable = Boolean(cat) && shown.filter((p) => !p.data.draft).length > 1;
+  $('#order-hint').hidden = Boolean(cat);
+  $('#post-list').classList.toggle('sortable', sortable);
   $('#post-list').innerHTML = shown.length
     ? shown
         .map(
-          (p) => `<li><a href="#edit/${encodeURIComponent(p.file)}">
+          (p) => `<li${sortable && !p.data.draft ? ` data-file="${esc(p.file)}"` : ''}>${
+            sortable ? (p.data.draft ? '<span class="drag off" title="임시 저장 글은 사이트에 보이지 않아 순서가 없어요"></span>' : '<span class="drag" title="끌어서 순서 바꾸기" aria-hidden="true">⠿</span>') : ''
+          }<a href="#edit/${encodeURIComponent(p.file)}">
             <span><b>${esc(p.data.title)}</b>${p.data.draft ? draftBadge(p.data.savedAt) : ''}</span>
             <span class="meta">${esc(catName(p.data.category))} · ${esc(p.data.updated)}${viewText(p.data.slug)}</span></a></li>`,
         )
         .join('')
     : `<li class="hint" style="padding:16px 4px">아직 글이 없어요. 새 글 쓰기를 눌러 시작하세요.</li>`;
+  orderBefore = currentOrder();
 }
-$('#filter-cat').addEventListener('change', renderList);
+let orderBefore: string[] = [];
+let orderDirty = false;
+const currentOrder = () => Array.from(document.querySelectorAll<HTMLElement>('#post-list li[data-file]')).map((li) => li.dataset.file!);
+function setOrderDirty(v: boolean) {
+  orderDirty = v;
+  $('#order-bar').hidden = !v;
+}
+$('#filter-cat').addEventListener('change', (e) => {
+  if (orderDirty && !confirm('저장하지 않은 순서 변경이 있어요. 버리고 다른 분류로 갈까요?')) {
+    (e.target as HTMLSelectElement).value = String(posts.find((p) => p.file === orderBefore[0])?.data.category ?? '');
+    return;
+  }
+  renderList();
+});
+
+// 끌어서 순서 바꾸기 (마우스, 손가락 모두). 손잡이(⠿)를 잡고 위아래로 옮깁니다.
+$('#post-list').addEventListener('pointerdown', (e) => {
+  const handle = (e.target as HTMLElement).closest<HTMLElement>('.drag:not(.off)');
+  if (!handle) return;
+  const li = handle.closest('li')!;
+  const list = li.parentElement!;
+  e.preventDefault();
+  li.classList.add('dragging');
+  let scroll = 0;
+  let lastY = e.clientY;
+  const place = () => {
+    const items = Array.from(list.querySelectorAll<HTMLElement>('li[data-file]:not(.dragging)'));
+    const next = items.find((it) => {
+      const r = it.getBoundingClientRect();
+      return lastY < r.top + r.height / 2;
+    });
+    if (next) {
+      if (li.nextElementSibling !== next) list.insertBefore(li, next);
+    } else if (items.length && items[items.length - 1].nextElementSibling !== li) {
+      items[items.length - 1].after(li);
+    }
+  };
+  // 화면 가장자리로 끌면 저절로 스크롤
+  const tick = () => {
+    const edge = 60;
+    const v = lastY < edge ? -(edge - lastY) / 4 : lastY > innerHeight - edge ? (lastY - (innerHeight - edge)) / 4 : 0;
+    if (v) {
+      scrollBy(0, v);
+      place();
+    }
+    scroll = requestAnimationFrame(tick);
+  };
+  scroll = requestAnimationFrame(tick);
+  const move = (ev: PointerEvent) => {
+    lastY = ev.clientY;
+    place();
+  };
+  const end = () => {
+    cancelAnimationFrame(scroll);
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', end);
+    document.removeEventListener('pointercancel', end);
+    li.classList.remove('dragging');
+    setOrderDirty(currentOrder().join() !== orderBefore.join());
+  };
+  // 줄을 옮기면 손잡이가 문서에서 잠깐 빠지므로, 움직임은 문서 전체에서 받습니다.
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+});
+$('#order-cancel').addEventListener('click', renderList);
+$('#order-save').addEventListener('click', async () => {
+  const btn = $<HTMLButtonElement>('#order-save');
+  const category = $<HTMLSelectElement>('#filter-cat').value;
+  btn.disabled = true;
+  btn.textContent = '저장 중…';
+  try {
+    const res = await api('/api/posts-order', { method: 'POST', body: JSON.stringify({ category, files: currentOrder() }) });
+    for (const p of posts) if (res.orders[p.file] !== undefined) p.data.order = res.orders[p.file];
+    toast('순서를 저장했어요. 1~2분 뒤 사이트에 반영돼요.');
+    renderList();
+  } catch (err) {
+    toast((err as Error).message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '순서 저장';
+  }
+});
 
 // ---------- 분류 관리 ----------
 let catDraft: Category[] = [];
@@ -1114,6 +1208,8 @@ window.addEventListener('hashchange', () => {
   }
   route();
 });
+
+setupNotice(api, toast);
 
 (window as any).__adminReady = true;
 (async function boot() {

@@ -36,27 +36,28 @@ function toJpeg(img: ImageBitmap | HTMLImageElement, w: number, h: number, quali
   return new Promise<Blob>((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error('압축 실패'))), 'image/jpeg', quality));
 }
 
-export async function compressImage(file: File): Promise<Prepared> {
+// limit: 이 크기를 넘을 때만 줄입니다 (방문자 글 1MB, 관리자 공지 4MB)
+export async function compressImage(file: File, limit = LIMIT): Promise<Prepared> {
   if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) throw new Error('사진 파일이 아니에요.');
   const img = await decode(file);
   const [w0, h0] = sizeOf(img);
   if (!w0 || !h0) throw new Error('사진을 열 수 없어요.');
-  if (file.size <= LIMIT) {
+  if (file.size <= limit) {
     if ('close' in img) img.close();
     return { blob: file, preview: URL.createObjectURL(file), width: w0, height: h0, original: file.size, compressed: false };
   }
-  let scale = Math.min(1, MAX_SIDE / Math.max(w0, h0));
+  let scale = limit > LIMIT ? 1 : Math.min(1, MAX_SIDE / Math.max(w0, h0));
   let blob: Blob | null = null;
   let w = w0;
   let h = h0;
   for (let round = 0; round < 8; round++) {
     w = Math.max(1, Math.round(w0 * scale));
     h = Math.max(1, Math.round(h0 * scale));
-    for (const q of [0.88, 0.8, 0.7]) {
+    for (const q of limit > LIMIT ? [0.95, 0.92, 0.88] : [0.88, 0.8, 0.7]) {
       blob = await toJpeg(img, w, h, q);
-      if (blob.size <= LIMIT) break;
+      if (blob.size <= limit) break;
     }
-    if (blob!.size <= LIMIT) break;
+    if (blob!.size <= limit) break;
     scale *= 0.8;
   }
   if ('close' in img) img.close();

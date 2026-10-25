@@ -11,8 +11,13 @@ export const POST: APIRoute = async (ctx) => {
   const q = ctx.url.searchParams;
   const id = Number(q.get('post'));
   if (!Number.isInteger(id) || !checkToken(q.get('t') ?? '', `up${id}`)) return json({ error: '사진을 올릴 수 있는 시간이 지났어요.' }, 403);
+  await ensureBoard();
+  const [post] = await sql()`select notice from board_posts where id = ${id}`;
+  if (!post) return json({ error: '없는 글이에요.' }, 404);
+  const maxBytes = post.notice ? LIMITS.noticeBytes : LIMITS.imageBytes;
+  const maxCount = post.notice ? LIMITS.noticeImages : LIMITS.images;
   const buf = new Uint8Array(await ctx.request.arrayBuffer());
-  if (buf.length > LIMITS.imageBytes) return json({ error: '사진이 너무 커요.' }, 413);
+  if (buf.length > maxBytes) return json({ error: '사진이 너무 커요.' }, 413);
   const mime = sniffImage(buf);
   if (!mime) return json({ error: '사진 파일(JPG, PNG, GIF, WEBP)만 올릴 수 있어요.' }, 415);
   const dim = (k: string) => {
@@ -20,14 +25,13 @@ export const POST: APIRoute = async (ctx) => {
     return n > 0 && n < 20000 ? n : null;
   };
   try {
-    await ensureBoard();
     const db = sql();
     const [row] = await db`
-      with p as (update board_posts set images = images + 1 where id = ${id} and images < ${LIMITS.images} returning images)
+      with p as (update board_posts set images = images + 1 where id = ${id} and images < ${maxCount} returning images)
       insert into board_images (post_id, ord, mime, width, height, data)
       select ${id}, p.images, ${mime}, ${dim('w')}, ${dim('h')}, ${Buffer.from(buf)} from p
       returning id`;
-    if (!row) return json({ error: `사진은 ${LIMITS.images}장까지 올릴 수 있어요.` }, 400);
+    if (!row) return json({ error: `사진은 ${maxCount}장까지 올릴 수 있어요.` }, 400);
     return json({ ok: true, id: row.id });
   } catch (e) {
     return json({ error: String((e as Error).message) }, 502);

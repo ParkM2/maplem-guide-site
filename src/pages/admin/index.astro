@@ -78,6 +78,11 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
     <div class="row filters">
       <label for="filter-cat" class="sr">분류로 거르기</label>
       <select id="filter-cat"></select>
+      <span id="order-hint" class="hint">분류를 고르면 글을 끌어서 사이트에 보이는 순서를 바꿀 수 있어요.</span>
+    </div>
+    <div id="order-bar" class="order-bar row between" hidden>
+      <span>순서를 바꿨어요. 저장해야 사이트에 반영돼요.</span>
+      <span class="row"><button type="button" id="order-cancel">되돌리기</button><button type="button" id="order-save" class="primary">순서 저장</button></span>
     </div>
     <ul id="post-list" class="wr-list"></ul>
   </section>
@@ -86,8 +91,25 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
   <section id="view-board" class="wr-wrap" hidden>
     <div class="row between">
       <h1>질문/의견 게시판</h1>
-      <a href="/board/" target="_blank" rel="noopener">게시판 열기</a>
+      <div class="row">
+        <a href="/board/" target="_blank" rel="noopener">게시판 열기</a>
+        <button type="button" id="nt-open" class="primary">공지 쓰기</button>
+      </div>
     </div>
+    <form id="nt-form" class="nt-form stack" hidden>
+      <p class="hint">공지는 게시판 맨 위에 굵은 글씨로 고정돼요. 사진은 개수 제한 없이 원본 그대로 올라가요. 한 장이 4MB를 넘을 때만 서버 한도에 맞게 최소한으로 줄여요.</p>
+      <input name="title" maxlength="100" placeholder="공지 제목" aria-label="공지 제목" />
+      <textarea name="body" rows="10" maxlength="5000" placeholder="공지 내용" aria-label="공지 내용"></textarea>
+      <div class="row between">
+        <label class="button">사진 고르기<input id="nt-files" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden /></label>
+        <span id="nt-count" class="hint"></span>
+      </div>
+      <ul id="nt-thumbs" class="nt-thumbs"></ul>
+      <div class="row between">
+        <button type="button" id="nt-cancel">취소</button>
+        <button type="submit" class="primary" id="nt-submit">공지 올리기</button>
+      </div>
+    </form>
     <div id="bd-admin"></div>
   </section>
 
