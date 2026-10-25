@@ -29,11 +29,11 @@ const bursts = [
 ---
 <section class="home-map" aria-label="분류 바로가기">
   <svg viewBox="0 0 1280 720" class="map-full" role="img" aria-label="메이플스토리M 캐릭터 그림과 분류 버튼">
-    <image href={url('/home/keyart.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" />
+    <image href={url('/home/keyart.webp')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" />
     <image href={url('/home/meso.png')} x={cx} y={cy} width={cw} height={ch} class="pixel" />
     {onMap.map((c) => c.slug === POP ? (
       <g class={`hl hl-${c.slug} pop`} aria-hidden="true">
-        <image href={url('/home/event.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" class="pop-img" />
+        <image data-href={url('/home/event.webp')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" class="pop-img" />
         {bursts.map((b) => (
           <g class="fw" style={`--d:${b.delay}s`}>
             {b.rays.map((r) => <line x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} stroke={r.c} pathLength="1" />)}
@@ -67,11 +67,11 @@ const bursts = [
 
   <!-- 휴대폰: 그림을 크게, 버튼은 아래에. 연결 모양은 차례로 돌아가며 보여 줍니다. -->
   <svg viewBox={`${ix} ${iy} ${iw} ${ih}`} class="map-mobile" aria-hidden="true">
-    <image href={url('/home/keyart.jpg')} x={ix} y={iy} width={iw} height={ih} />
+    <image href={url('/home/keyart.webp')} x={ix} y={iy} width={iw} height={ih} />
     <image href={url('/home/meso.png')} x={cx} y={cy} width={cw} height={ch} class="pixel" />
     {onMap.map((c) => c.slug === POP ? (
       <g class={`hl hl-${c.slug} pop`}>
-        <image href={url('/home/event.jpg')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" class="pop-img" />
+        <image data-href={url('/home/event.webp')} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="xMidYMid slice" class="pop-img" />
         {bursts.map((b) => (
           <g class="fw" style={`--d:${b.delay}s`}>
             {b.rays.map((r) => <line x1={r.x1} y1={r.y1} x2={r.x2} y2={r.y2} stroke={r.c} pathLength="1" />)}
@@ -102,7 +102,17 @@ const bursts = [
   (function () {
     var root = document.querySelector('.home-map');
     if (!root) return;
+    // 이벤트 그림은 처음 화면에 보이지 않으므로, 페이지가 다 뜬 뒤(또는 이벤트 버튼에 처음 올렸을 때) 불러옵니다.
+    var loadPop = function () {
+      root.querySelectorAll('.pop-img[data-href]').forEach(function (img) {
+        img.setAttribute('href', img.getAttribute('data-href'));
+        img.removeAttribute('data-href');
+      });
+    };
+    if (document.readyState === 'complete') setTimeout(loadPop, 500);
+    else addEventListener('load', function () { setTimeout(loadPop, 500); });
     var set = function (slug) {
+      if (slug === 'event') loadPop();
       root.querySelectorAll('.hl').forEach(function (g) { g.classList.toggle('show', !!slug && g.classList.contains('hl-' + slug)); });
       root.querySelectorAll('.map-full .btn').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-slug') === slug); });
       root.querySelectorAll('.map-btns a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-slug') === slug); });

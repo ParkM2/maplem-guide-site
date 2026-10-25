@@ -29,6 +29,7 @@ const naverVerify = process.env.NAVER_SITE_VERIFICATION
   ? [process.env.NAVER_SITE_VERIFICATION]
   : ['a44b94690a02b3cba9a0ab63727d13d7a89eebdb', '9f52978e655f4af4d74a90075ebfdf82aa1e2c74'];
 const categories = await getCategories();
+const FONT_CSS = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap';
 const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
 ---
 <!doctype html>
@@ -72,8 +73,13 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
   <link rel="canonical" href={canonical} />
   <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={url('/rss.xml')} />
   <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+  <!-- 글꼴: 구글 폰트를 화면 표시를 막지 않게 불러옵니다. 글꼴이 오기 전에는 기본 글꼴로 먼저 보여 줍니다. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href={FONT_CSS} />
+  <link rel="stylesheet" href={FONT_CSS} media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href={FONT_CSS} /></noscript>
+  <slot name="head" />
 </head>
 <body class="site">
   <header class="site-head">
