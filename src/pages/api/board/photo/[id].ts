@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { sql } from '../../../../lib/server/db';
-import { boardReady, canRead, ensureBoard } from '../../../../lib/server/board';
+import { boardReady, canRead, ensureBoard, photoKey } from '../../../../lib/server/board';
 
 export const prerender = false;
 
@@ -17,7 +17,12 @@ export const GET: APIRoute = async (ctx) => {
   return new Response(img.data, {
     headers: {
       'content-type': img.mime,
-      'cache-control': img.secret ? 'private, max-age=3600' : 'public, max-age=86400',
+      // 서명된 공개글 사진 주소는 CDN에 30일 저장, 그 밖의 공개 사진은 브라우저에만 하루 저장
+      'cache-control': img.secret
+        ? 'private, max-age=3600'
+        : ctx.url.searchParams.get('k') === photoKey(id)
+          ? 'public, max-age=86400, s-maxage=2592000'
+          : 'public, max-age=86400',
       'x-content-type-options': 'nosniff',
     },
   });

@@ -24,6 +24,15 @@ let ready: Promise<unknown> | null = null;
 export function ensureBoard() {
   ready ??= (async () => {
     const db = sql();
+    // 표가 이미 다 있으면(보통은 그렇습니다) 한 번만 물어보고 끝냅니다.
+    // 서버가 깨어날 때마다 표 만들기 명령 9개를 DB에 하나씩 보내던 시간을 줄입니다.
+    // 아래에 표나 칸을 새로 추가하면 이 확인에도 같이 넣어 주세요.
+    const [{ ok }] = await db`
+      select to_regclass('board_images') is not null
+         and to_regclass('board_comments') is not null
+         and exists (select 1 from information_schema.columns
+                     where table_name = 'board_posts' and column_name = 'updated') as ok`;
+    if (ok) return;
     await db`
       create table if not exists board_posts (
         id serial primary key,
@@ -72,6 +81,12 @@ export function ensureBoard() {
 }
 
 export const boardReady = dbConfigured;
+
+// 공개글 사진 주소에는 서명값(k)을 붙여 Vercel CDN에 오래 저장해 두게 합니다(다음 사람부터는 DB를 거치지 않음).
+// 글이 나중에 비밀글로 바뀌면 이 주소를 더 쓰지 않으므로, 번호만 바꿔 넣어서는 저장된 사진을 볼 수 없습니다.
+export const photoKey = (id: number) => hmac(`photo|${id}`).slice(0, 16);
+export const photoPath = (id: number, secret: boolean) =>
+  secret ? `/api/board/photo/${id}` : `/api/board/photo/${id}?k=${photoKey(id)}`;
 
 // 비밀번호는 그대로 저장하지 않고 scrypt 값만 저장합니다.
 export function hashPw(pw: string) {

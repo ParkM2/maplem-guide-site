@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { url } from '../../lib/site';
 import { sql } from '../../lib/server/db';
-import { boardReady, canRead, ensureBoard, getPost, isAdmin } from '../../lib/server/board';
+import { boardReady, canRead, ensureBoard, getPost, isAdmin, photoPath } from '../../lib/server/board';
 import { bdFull } from '../../lib/board-date';
 
 export const prerender = false;
@@ -59,8 +59,8 @@ const photoFail = Number(Astro.url.searchParams.get('photo_fail')) || 0;
       {images.length > 0 && (
         <div class="bd-images">
           {images.map((im) => (
-            <a href={url(`/api/board/photo/${im.id}`)} target="_blank" rel="noopener">
-              <img src={url(`/api/board/photo/${im.id}`)} width={im.width ?? undefined} height={im.height ?? undefined} loading="lazy" decoding="async" alt="" />
+            <a href={url(photoPath(im.id, post.secret))} target="_blank" rel="noopener">
+              <img src={url(photoPath(im.id, post.secret))} width={im.width ?? undefined} height={im.height ?? undefined} loading="lazy" decoding="async" alt="" />
             </a>
           ))}
         </div>
