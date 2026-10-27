@@ -45,7 +45,7 @@ import '../../styles/calc.css';
   <!-- 2. 메소 → 메포 -->
   <section class="calc" id="v-mp" hidden>
     <div class="blk">
-      <div class="blk-h"><h2>메소 ↔ 메포</h2><span class="unit">거래 가격 (1억 메소당)</span><input class="c in" id="mp-price" inputmode="decimal" data-k="mpPrice"><span class="unit">Point</span></div>
+      <div class="blk-h"><h2>메소 ↔ 메포</h2><span class="unit lb">거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="mepo" aria-label="메포 거래 가격 설명">ⓘ</button></span><input class="c in" id="mp-price" inputmode="decimal" data-k="mpPrice"><span class="unit">Point</span></div>
       <div class="row">
         <div class="tag">수수료 X</div>
         <div class="sent"><input class="c in" id="mp-want" inputmode="decimal" data-k="mpWant"><span>Point를 얻으려면</span><output class="c f" id="mp-x-meso"></output><span>억 메소 필요</span><span class="arrow">→</span><output class="c f" id="mp-x-buy"></output><span>Point 구매</span></div>
@@ -81,7 +81,7 @@ import '../../styles/calc.css';
       </div>
     </div>
     <div class="blk">
-      <div class="blk-h"><h2>메소 ↔ 메포</h2><span class="unit">거래 가격 (1억 메소당)</span><input class="c in" id="cmp-rate" inputmode="decimal" data-k="cmpRate"><span class="unit">Point</span></div>
+      <div class="blk-h"><h2>메소 ↔ 메포</h2><span class="unit lb">거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="mepo" aria-label="메포 거래 가격 설명">ⓘ</button></span><input class="c in" id="cmp-rate" inputmode="decimal" data-k="cmpRate"><span class="unit">Point</span></div>
       <div class="row">
         <div class="tag">수수료 X</div>
         <div class="sent"><input class="c in" id="cmp-want" inputmode="decimal" data-k="cmpWant"><span>Point를 얻으려면</span><output class="c f" id="cmp-mx-meso"></output><span>억 메소 필요</span><span class="arrow">→</span><output class="c f" id="cmp-mx-buy"></output><span>Point 구매</span></div>
@@ -153,7 +153,7 @@ import '../../styles/calc.css';
       <div class="blk-h"><h2>같은 메포, 어떻게 사는 게 쌀까?</h2></div>
       <div class="stack">
         <div class="ln"><span class="unit lb">메소 거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="meso" aria-label="메소 거래 가격 설명">ⓘ</button></span><input class="c in" id="vs-price" inputmode="decimal" data-k="vsPrice"><span class="unit">원</span></div>
-        <div class="ln"><span class="unit">메포 거래 가격 (1억 메소당)</span><input class="c in" id="vs-rate" inputmode="decimal" data-k="vsRate"><span class="unit">Point</span></div>
+        <div class="ln"><span class="unit lb">메포 거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="mepo" aria-label="메포 거래 가격 설명">ⓘ</button></span><input class="c in" id="vs-rate" inputmode="decimal" data-k="vsRate"><span class="unit">Point</span></div>
         <div class="ln"><span class="unit lb">결제 할인<button class="tip" type="button" data-tip="disc" aria-label="결제 할인 설명">ⓘ</button></span><input class="c in" id="vs-disc" inputmode="decimal" data-k="vsDisc"><span class="unit">%</span></div>
         <div class="ln"><span class="unit lb">플포 비율 (1포인트당)<button class="tip" type="button" data-tip="pp" aria-label="플포 비율 설명">ⓘ</button></span><input class="c in" id="vs-pp" inputmode="decimal" data-k="vsPp"><span class="unit">원</span></div>
         <div class="ln total"><span class="unit">비교할 메포</span><input class="c in" id="vs-want" inputmode="decimal" data-k="vsWant"><span class="unit">메포</span></div>
@@ -265,6 +265,7 @@ import '../../styles/calc.css';
   var TIPS = {
     meso: '메소와 현금 거래 비율입니다. 1:600이라면 1억 메소가 현금 600원입니다.',
     disc: '현금 결제 시 할인받는 비율입니다. 구글 기프트카드 7% 할인, 문상 6% 할인, 혹은 5% 적립 등에 쓰일 수 있습니다.',
+    mepo: '메포 구매라면, 메소마켓의 메소 판매 탭 가격이에요. 예를 들어 1억 메소당 메이플 포인트가 1,000일 때, 10억 메소를 판매하면 수수료 1%가 차감된 9,900메포가 들어와요.',
     pp: '구글 플레이 포인트 현금 거래 비율입니다. 1:10의 경우 플포 1이 현금 10원입니다. 1:12는 플포 1이 현금 12원입니다.'
   };
   var pop = $('tip-pop'), cur = null;
