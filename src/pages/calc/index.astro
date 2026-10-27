@@ -102,7 +102,7 @@ import '../../styles/calc.css';
         <div class="ln"><span class="unit lb">기프트카드 결제 할인<button class="tip" type="button" data-tip="gift" aria-label="기프트카드 결제 할인 설명">ⓘ</button></span><input class="c in" id="cp-gift" inputmode="text" data-signed data-k="cpGift"><span class="unit">%</span></div>
         <div class="ln"><span class="unit lb">직접 결제 할인<button class="tip" type="button" data-tip="direct" aria-label="직접 결제 할인 설명">ⓘ</button></span><input class="c in" id="cp-direct" inputmode="decimal" data-k="cpDirect"><span class="unit">%</span></div>
         <div class="ln"><span class="unit lb">플포 비율 (1포인트당)<button class="tip" type="button" data-tip="pp" aria-label="플포 비율 설명">ⓘ</button></span><input class="c in" id="cp-pp" inputmode="decimal" data-k="cpPp"><span class="unit">원</span></div>
-        <div class="ln"><span class="unit">계산할 메포</span><input class="c in" id="cp-want" inputmode="decimal" data-k="cpWant"><span class="unit">메포</span></div>
+        <div class="ln"><span class="unit">계산할 메포</span><div class="seg" role="radiogroup" aria-label="메포 양 고르기" data-want="cpWant"><button type="button" role="radio" data-v="12000">12,000</button><button type="button" role="radio" data-v="33000">33,000</button></div><span class="unit">메포</span></div>
       </div>
       <div class="kgrid">
         <span></span><span class="hd">구글 플포 1</span><span class="hd">구글 플포 2</span>
@@ -113,7 +113,7 @@ import '../../styles/calc.css';
     </div>
     <div class="grid2">
       <div class="blk">
-        <div class="blk-h"><h2>750포 → 12,000메포</h2></div>
+        <div class="blk-h"><h2>750플포 → 12,000메포</h2></div>
         <div class="stack">
           <div class="ln"><output class="c f" id="cp-1p-cost"></output><span>원에 구매</span></div>
           <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-1p-unit"></output><span>원</span></div>
@@ -128,8 +128,8 @@ import '../../styles/calc.css';
           <div class="ln total"><output class="c f" id="cp-1d-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-1d-total"></output><span>원</span></div>
         </div>
       </div>
-      <div class="blk">
-        <div class="blk-h"><h2>1200포 → 33,000메포</h2></div>
+      <div class="blk" id="cp-2p-card">
+        <div class="blk-h"><h2>1200플포 → 33,000메포</h2></div>
         <div class="stack">
           <div class="ln"><output class="c f" id="cp-2p-cost"></output><span>원에 구매</span></div>
           <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-2p-unit"></output><span>원</span></div>
@@ -145,7 +145,7 @@ import '../../styles/calc.css';
         </div>
       </div>
     </div>
-    <p class="calc-note">플포 쿠폰은 한 번 결제에 하나만 쓸 수 있고, 750포와 1200포 쿠폰은 같이 쓸 수 없어요.</p>
+    <p class="calc-note">플포 쿠폰은 한 번 결제에 하나만 쓸 수 있고, 750플포와 1200플포 쿠폰은 같이 쓸 수 없어요.</p>
   </section>
 
   <!-- 5. 메소 경유 vs 현금 결제 비교 -->
@@ -158,7 +158,7 @@ import '../../styles/calc.css';
         <div class="ln"><span class="unit lb">기프트카드 결제 할인<button class="tip" type="button" data-tip="gift" aria-label="기프트카드 결제 할인 설명">ⓘ</button></span><input class="c in" id="vs-gift" inputmode="text" data-signed data-k="vsGift"><span class="unit">%</span></div>
         <div class="ln"><span class="unit lb">직접 결제 할인<button class="tip" type="button" data-tip="direct" aria-label="직접 결제 할인 설명">ⓘ</button></span><input class="c in" id="vs-direct" inputmode="decimal" data-k="vsDirect"><span class="unit">%</span></div>
         <div class="ln"><span class="unit lb">플포 비율 (1포인트당)<button class="tip" type="button" data-tip="pp" aria-label="플포 비율 설명">ⓘ</button></span><input class="c in" id="vs-pp" inputmode="decimal" data-k="vsPp"><span class="unit">원</span></div>
-        <div class="ln total"><span class="unit">비교할 메포</span><input class="c in" id="vs-want" inputmode="decimal" data-k="vsWant"><span class="unit">메포</span></div>
+        <div class="ln total"><span class="unit">비교할 메포</span><div class="seg" role="radiogroup" aria-label="메포 양 고르기" data-want="vsWant"><button type="button" role="radio" data-v="12000">12,000</button><button type="button" role="radio" data-v="33000">33,000</button></div><span class="unit">메포</span></div>
       </div>
     </div>
     <div class="blk">
@@ -181,7 +181,7 @@ import '../../styles/calc.css';
   var MESO_FEE = 1.11, MEPO_FEE = 1.01;
   // 고정값(회색 칸): 구글 플포 쿠폰과 상품
   var C1 = { pp: 750, cap: 15000, mepo: 12000 }, C2 = { pp: 1200, cap: 25000, mepo: 33000 };
-  var DEF = { cmPrice: 650, cmWant: 13, mpPrice: 900, mpWant: 10000, cmpPrice: 650, cmpRate: 1000, cmpWant: 50000, cpGift: 0, cpDirect: 5, cpPp: 10, cpWant: 50000, vsPrice: 650, vsRate: 1000, vsGift: 0, vsDirect: 5, vsPp: 10, vsWant: 50000, view: 'cm' };
+  var DEF = { cmPrice: 650, cmWant: 13, mpPrice: 900, mpWant: 10000, cmpPrice: 650, cmpRate: 1000, cmpWant: 50000, cpGift: 0, cpDirect: 5, cpPp: 10, cpWant: 33000, vsPrice: 650, vsRate: 1000, vsGift: 0, vsDirect: 5, vsPp: 10, vsWant: 33000, view: 'cm' };
   var KEY = 'mgs_calc_v2';
   var st = Object.assign({}, DEF);
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
@@ -193,6 +193,16 @@ import '../../styles/calc.css';
   var sn = function (v) { v = Number(String(v).replace(/,/g, '').replace(/[−–]/g, '-')); return isFinite(v) ? Math.max(-100, Math.min(100, v)) : 0; };
   var fmt = function (v, d) { return v.toLocaleString('ko-KR', { maximumFractionDigits: d || 0 }); };
   var put = function (id, v, d) { $(id).textContent = fmt(v, d); };
+
+  // 메포 양은 12,000 / 33,000 중 하나만 고릅니다
+  var WANTS = [12000, 33000];
+  ['cpWant', 'vsWant'].forEach(function (k) { if (WANTS.indexOf(Number(st[k])) < 0) st[k] = 33000; });
+  document.querySelectorAll('.seg').forEach(function (box) {
+    var k = box.dataset.want, btns = box.querySelectorAll('button');
+    var mark = function () { btns.forEach(function (b) { b.setAttribute('aria-checked', Number(b.dataset.v) === Number(st[k])); }); };
+    btns.forEach(function (b) { b.addEventListener('click', function () { st[k] = Number(b.dataset.v); save(); mark(); calc(); }); });
+    mark();
+  });
 
   var inputs = document.querySelectorAll('input[data-k]');
   inputs.forEach(function (el) {
@@ -241,12 +251,16 @@ import '../../styles/calc.css';
     });
 
     // 5. 메소 경유 vs 현금 결제
+    // 1200플포 쿠폰은 25,000원 할인이라 12,000메포를 살 때는 쓰지 않아요
+    $('cp-2p-card').hidden = mw < C2.mepo;
+
     var vp = n(st.vsPrice), vr = n(st.vsRate), vg = sn(st.vsGift) / 100, vd = n(st.vsDirect) / 100, vpp = n(st.vsPp), vw = n(st.vsWant);
     var vMeso = vr ? Math.round(vw * MEPO_FEE / vr) : 0;
     var ways = [{ grp: '메소 경유', name: '현금 → 메소 → 메포', cost: vp * vMeso * MESO_FEE, how: fmt(vMeso * MESO_FEE, 2) + '억 메소 구매 → ' + fmt(vMeso) + '억 메소로 메포 교환', a: true }];
     [C1, C2].forEach(function (c) {
+      if (c === C2 && vw < C2.mepo) return;
       var cost = c.pp * vpp + Math.max(0, c.mepo - c.cap) * (1 - vg);
-      ways.push({ grp: '현금 결제', name: fmt(c.pp) + '포 쿠폰', cost: cost / c.mepo * vw, how: fmt(c.mepo) + '메포 상품 ' + fmt(cost) + '원 기준' });
+      ways.push({ grp: '현금 결제', name: fmt(c.pp) + '플포 쿠폰', cost: cost / c.mepo * vw, how: fmt(c.mepo) + '메포 상품 ' + fmt(cost) + '원 기준' });
     });
     ways.push({ grp: '현금 결제', name: '직접 결제', cost: (1 - vd) * vw, how: '직접 결제 할인 ' + fmt(vd * 100, 2) + '% 적용' });
     var A = ways[0], B = ways.slice(1).sort(function (x, y) { return x.cost - y.cost; })[0];
