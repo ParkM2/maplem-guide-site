@@ -100,3 +100,12 @@
   .calc-page .row { grid-template-columns: 1fr; }
   .calc-page .tag small { display: inline; margin-left: 6px; }
 }
+
+/* 메포 양 고르기 (12,000 / 33,000) */
+.calc-page .seg { display: inline-flex; gap: 6px; }
+.calc-page .seg button { min-width: 5.5em; padding: 3px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--muted);
+  font: 600 16px/1.5 var(--mono); font-variant-numeric: tabular-nums; cursor: pointer; }
+.calc-page .seg button:hover { border-color: var(--in-line); color: var(--ink); }
+.calc-page .seg button[aria-checked="true"] { background: var(--in-bg); border-color: var(--in-line); color: var(--ink); }
+:root[data-theme="light"] .calc-page .seg button[aria-checked="true"] { color: #1b2130; }
+.calc-page .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
