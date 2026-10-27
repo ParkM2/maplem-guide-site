@@ -89,6 +89,7 @@ const pageTitle = title ? `${title} · ${SITE_NAME}` : SITE_NAME;
         {categories.map((c) => (
           <a href={url(`/${c.slug}/`)} aria-current={current === c.slug ? 'page' : undefined}>{c.name}</a>
         ))}
+        <a href={url('/calc/')} class="qna-link" aria-current={current === 'calc' ? 'page' : undefined}>계산기</a>
         <a href={url('/board/')} class="qna-link" aria-current={current === 'board' ? 'page' : undefined}>질문/의견 게시판</a>
       </nav>
       <div class="head-tools">

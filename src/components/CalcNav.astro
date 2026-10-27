@@ -1,0 +1,14 @@
+---
+import { url } from '../lib/site';
+
+// 계산기 탭 위쪽의 계산기 고르기 버튼 (계산기를 더 만들면 여기에 추가)
+interface Props { current: 'mepo' | 'jasa' }
+const { current } = Astro.props;
+const items = [
+  { id: 'mepo', name: '메포 계산기', href: url('/calc/') },
+  { id: 'jasa', name: '자사 구매 계산기', href: url('/calc/jasa/') },
+];
+---
+<nav class="calc-nav" aria-label="계산기 종류">
+  {items.map((i) => <a href={i.href} aria-current={current === i.id ? 'page' : undefined}>{i.name}</a>)}
+</nav>

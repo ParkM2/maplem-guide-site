@@ -18,6 +18,7 @@ export const GET: APIRoute = async ({ site }) => {
     })),
     ...posts.map((p) => ({ loc: abs(postUrl(p)), lastmod: day(p.data.updated) })),
     { loc: abs(url('/about/')) },
+    { loc: abs(url('/calc/')) },
   ];
 
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
