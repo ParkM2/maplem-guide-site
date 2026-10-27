@@ -112,7 +112,7 @@ import '../../styles/calc.css';
       </div>
     </div>
     <div class="grid2">
-      <div class="blk">
+      <div class="blk" id="cp-1p-card">
         <div class="blk-h"><h2>750플포 → 12,000메포</h2></div>
         <div class="stack">
           <div class="ln"><output class="c f" id="cp-1p-cost"></output><span>원에 구매</span></div>
@@ -120,7 +120,7 @@ import '../../styles/calc.css';
           <div class="ln total"><output class="c f" id="cp-1p-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-1p-total"></output><span>원</span></div>
         </div>
       </div>
-      <div class="blk">
+      <div class="blk" id="cp-1d-card">
         <div class="blk-h"><h2>12,000메포 직접 결제</h2></div>
         <div class="stack">
           <div class="ln"><output class="c f" id="cp-1d-cost"></output><span>원에 구매</span></div>
@@ -144,7 +144,7 @@ import '../../styles/calc.css';
           <div class="ln total"><output class="c f" id="cp-3p-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-3p-total"></output><span>원</span></div>
         </div>
       </div>
-      <div class="blk">
+      <div class="blk" id="cp-2d-card">
         <div class="blk-h"><h2>33,000메포 직접 결제</h2></div>
         <div class="stack">
           <div class="ln"><output class="c f" id="cp-2d-cost"></output><span>원에 구매</span></div>
@@ -263,9 +263,10 @@ import '../../styles/calc.css';
     put('cp-3p-cost', c3); put('cp-3p-unit', c3 / C3.mepo, 3); put('cp-3p-want', mw); put('cp-3p-total', c3 / C3.mepo * mw);
 
     // 5. 메소 경유 vs 현금 결제
-    // 1200플포 쿠폰은 25,000원 할인이라 12,000메포를 살 때는 쓰지 않아요
-    $('cp-2p-card').hidden = mw < C2.mepo;
-    $('cp-3p-card').hidden = mw < C3.mepo;
+    // 고른 메포 양(12,000 / 33,000)과 같은 상품 카드만 보여요
+    $('cp-1p-card').hidden = $('cp-1d-card').hidden = mw !== C1.mepo;
+    $('cp-2p-card').hidden = $('cp-2d-card').hidden = mw !== C2.mepo;
+    $('cp-3p-card').hidden = mw !== C3.mepo;
 
     var vp = n(st.vsPrice), vr = n(st.vsRate), vg = sn(st.vsGift) / 100, vd = n(st.vsDirect) / 100, vpp = n(st.vsPp), vw = n(st.vsWant);
     var vMeso = vr ? Math.round(vw * MEPO_FEE / vr) : 0;
