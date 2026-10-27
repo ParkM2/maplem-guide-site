@@ -136,6 +136,14 @@ import '../../styles/calc.css';
           <div class="ln total"><output class="c f" id="cp-2p-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-2p-total"></output><span>원</span></div>
         </div>
       </div>
+      <div class="blk" id="cp-3p-card">
+        <div class="blk-h"><h2>750플포 → 33,000메포</h2></div>
+        <div class="stack">
+          <div class="ln"><output class="c f" id="cp-3p-cost"></output><span>원에 구매</span></div>
+          <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-3p-unit"></output><span>원</span></div>
+          <div class="ln total"><output class="c f" id="cp-3p-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-3p-total"></output><span>원</span></div>
+        </div>
+      </div>
       <div class="blk">
         <div class="blk-h"><h2>33,000메포 직접 결제</h2></div>
         <div class="stack">
@@ -181,6 +189,8 @@ import '../../styles/calc.css';
   var MESO_FEE = 1.11, MEPO_FEE = 1.01;
   // 고정값(회색 칸): 구글 플포 쿠폰과 상품
   var C1 = { pp: 750, cap: 15000, mepo: 12000 }, C2 = { pp: 1200, cap: 25000, mepo: 33000 };
+  // 750플포 쿠폰(15,000원 할인)으로 33,000메포 상품을 살 때
+  var C3 = { pp: 750, cap: 15000, mepo: 33000 };
   var DEF = { cmPrice: 650, cmWant: 13, mpPrice: 900, mpWant: 10000, cmpPrice: 650, cmpRate: 1000, cmpWant: 50000, cpGift: 0, cpDirect: 5, cpPp: 10, cpWant: 33000, vsPrice: 650, vsRate: 1000, vsGift: 0, vsDirect: 5, vsPp: 10, vsWant: 33000, view: 'cm' };
   var KEY = 'mgs_calc_v2';
   var st = Object.assign({}, DEF);
@@ -249,16 +259,20 @@ import '../../styles/calc.css';
       put('cp-' + i + 'p-cost', plCost); put('cp-' + i + 'p-unit', plCost / c.mepo, 3); put('cp-' + i + 'p-want', mw); put('cp-' + i + 'p-total', plCost / c.mepo * mw);
       put('cp-' + i + 'd-cost', dCost); put('cp-' + i + 'd-unit', 1 - d, 3); put('cp-' + i + 'd-want', mw); put('cp-' + i + 'd-total', (1 - d) * mw);
     });
+    var c3 = C3.pp * pw + Math.max(0, C3.mepo - C3.cap) * (1 - g);
+    put('cp-3p-cost', c3); put('cp-3p-unit', c3 / C3.mepo, 3); put('cp-3p-want', mw); put('cp-3p-total', c3 / C3.mepo * mw);
 
     // 5. 메소 경유 vs 현금 결제
     // 1200플포 쿠폰은 25,000원 할인이라 12,000메포를 살 때는 쓰지 않아요
     $('cp-2p-card').hidden = mw < C2.mepo;
+    $('cp-3p-card').hidden = mw < C3.mepo;
 
     var vp = n(st.vsPrice), vr = n(st.vsRate), vg = sn(st.vsGift) / 100, vd = n(st.vsDirect) / 100, vpp = n(st.vsPp), vw = n(st.vsWant);
     var vMeso = vr ? Math.round(vw * MEPO_FEE / vr) : 0;
     var ways = [{ grp: '메소 경유', name: '현금 → 메소 → 메포', cost: vp * vMeso * MESO_FEE, how: fmt(vMeso * MESO_FEE, 2) + '억 메소 구매 → ' + fmt(vMeso) + '억 메소로 메포 교환', a: true }];
-    [C1, C2].forEach(function (c) {
-      if (c === C2 && vw < C2.mepo) return;
+    // 고른 메포 양과 같은 상품만 비교: 12,000이면 750플포(12,000메포), 33,000이면 1200플포·750플포(33,000메포)
+    [C1, C2, C3].forEach(function (c) {
+      if (c.mepo !== vw) return;
       var cost = c.pp * vpp + Math.max(0, c.mepo - c.cap) * (1 - vg);
       ways.push({ grp: '현금 결제', name: fmt(c.pp) + '플포 쿠폰', cost: cost / c.mepo * vw, how: fmt(c.mepo) + '메포 상품 ' + fmt(cost) + '원 기준' });
     });
