@@ -1,0 +1,300 @@
+---
+import Base from '../../layouts/Base.astro';
+import CalcNav from '../../components/CalcNav.astro';
+import '../../styles/calc.css';
+
+// 메포 계산기: jin님 엑셀 '재화 계산기 (메포, 메소, 현금)'을 옮긴 것. 계산은 아래 script에서 브라우저가 합니다.
+---
+<Base title="메포 계산기" description="메이플스토리M 현금, 메소, 메포를 바꿀 때 드는 비용을 계산하고, 메소로 사는 것과 현금으로 사는 것 중 어느 쪽이 싼지 비교해요." current="calc">
+  <div class="calc-page">
+    <CalcNav current="mepo" />
+  <div class="h1row"><h1>메포 계산기</h1><span class="h1-note">메소로 메포 구매하는 건 MVP 반영이 되지 않습니다.</span></div>
+
+  <div class="pick">
+    
+    <select id="pick" aria-label="계산기 고르기">
+      <option value="cm">현금 → 메소</option>
+      <option value="mp">메소 → 메포</option>
+      <option value="cmp">현금 → 메소 → 메포</option>
+      <option value="cp">현금 → 메포</option>
+      <option value="vs">메소 경유 vs 현금 결제 비교</option>
+    </select>
+  </div>
+
+  <ul class="legend" aria-label="칸 색 설명">
+    <li><i class="in"></i>입력하는 칸</li>
+    <li><i class="f"></i>계산 결과</li>
+    <li><i class="k"></i>고정값</li>
+  </ul>
+
+  <!-- 1. 현금 → 메소 -->
+  <section class="calc" id="v-cm">
+    <div class="blk">
+      <div class="blk-h"><h2>현금 ↔ 메소</h2><span class="unit lb">거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="meso" aria-label="거래 가격 설명">ⓘ</button></span><input class="c in" id="cm-price" inputmode="decimal" data-k="cmPrice"><span class="unit">원</span></div>
+      <div class="row">
+        <div class="tag">수수료 X</div>
+        <div class="sent"><input class="c in" id="cm-want" inputmode="decimal" data-k="cmWant"><span>억 메소를 얻으려면</span><output class="c f" id="cm-x-won"></output><span>원 필요</span><span class="arrow">→</span><output class="c f" id="cm-x-buy"></output><span>억 메소 구매</span></div>
+      </div>
+      <div class="row">
+        <div class="tag">수수료 O<small>메소 10%</small></div>
+        <div class="sent"><output class="c f" id="cm-o-want"></output><span>억 메소를 얻으려면</span><output class="c f" id="cm-o-won"></output><span>원 필요</span><span class="arrow">→</span><output class="c f" id="cm-o-buy"></output><span>억 메소 구매</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 메소 → 메포 -->
+  <section class="calc" id="v-mp" hidden>
+    <div class="blk">
+      <div class="blk-h"><h2>메소 ↔ 메포</h2><span class="unit">거래 가격 (1억 메소당)</span><input class="c in" id="mp-price" inputmode="decimal" data-k="mpPrice"><span class="unit">Point</span></div>
+      <div class="row">
+        <div class="tag">수수료 X</div>
+        <div class="sent"><input class="c in" id="mp-want" inputmode="decimal" data-k="mpWant"><span>Point를 얻으려면</span><output class="c f" id="mp-x-meso"></output><span>억 메소 필요</span><span class="arrow">→</span><output class="c f" id="mp-x-buy"></output><span>Point 구매</span></div>
+      </div>
+      <div class="row">
+        <div class="tag">수수료 O<small>메포 1%</small></div>
+        <div class="sent"><output class="c f" id="mp-o-want"></output><span>Point를 얻으려면</span><output class="c f" id="mp-o-meso"></output><span>억 메소 필요</span><span class="arrow">→</span><output class="c f" id="mp-o-buy"></output><span>Point 구매</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 현금 → 메소 → 메포 -->
+  <section class="calc" id="v-cmp" hidden>
+    <div class="blk">
+      <div class="blk-h"><h2>한눈에 보기</h2></div>
+      <div class="sum">
+        <span>메소를 억당</span><output class="c f" id="cmp-s-price"></output><span>원에 구매</span>
+        <span>메포를 억당</span><output class="c f" id="cmp-s-rate"></output><span>Point에 구매</span>
+        <span>메포를</span><output class="c f" id="cmp-s-want"></output><span>Point 구매 시</span>
+        <span>현금</span><output class="c f" id="cmp-s-won"></output><span><b>원 필요</b></span>
+        <output class="c cond" id="cmp-cond" hidden>메소 계산과 메포 계산의 메소 양이 같아야 해요</output>
+      </div>
+    </div>
+    <div class="blk">
+      <div class="blk-h"><h2>현금 ↔ 메소</h2><span class="unit lb">거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="meso" aria-label="거래 가격 설명">ⓘ</button></span><input class="c in" id="cmp-price" inputmode="decimal" data-k="cmpPrice"><span class="unit">원</span></div>
+      <div class="row">
+        <div class="tag">수수료 X</div>
+        <div class="sent"><output class="c f" id="cmp-x-meso"></output><span>억 메소를 얻으려면</span><output class="c f" id="cmp-x-won"></output><span>원 필요</span><span class="arrow">→</span><output class="c f" id="cmp-x-buy"></output><span>억 메소 구매</span></div>
+      </div>
+      <div class="row">
+        <div class="tag">수수료 O<small>메소 10%</small></div>
+        <div class="sent"><output class="c f" id="cmp-o-meso"></output><span>억 메소를 얻으려면</span><output class="c f" id="cmp-o-won"></output><span>원 필요</span><span class="arrow">→</span><output class="c f" id="cmp-o-buy"></output><span>억 메소 구매</span></div>
+      </div>
+    </div>
+    <div class="blk">
+      <div class="blk-h"><h2>메소 ↔ 메포</h2><span class="unit">거래 가격 (1억 메소당)</span><input class="c in" id="cmp-rate" inputmode="decimal" data-k="cmpRate"><span class="unit">Point</span></div>
+      <div class="row">
+        <div class="tag">수수료 X</div>
+        <div class="sent"><input class="c in" id="cmp-want" inputmode="decimal" data-k="cmpWant"><span>Point를 얻으려면</span><output class="c f" id="cmp-mx-meso"></output><span>억 메소 필요</span><span class="arrow">→</span><output class="c f" id="cmp-mx-buy"></output><span>Point 구매</span></div>
+      </div>
+      <div class="row">
+        <div class="tag">수수료 O<small>메포 1%</small></div>
+        <div class="sent"><output class="c f" id="cmp-mo-want"></output><span>Point를 얻으려면</span><output class="c f" id="cmp-mo-meso"></output><span>억 메소 필요</span><span class="arrow">→</span><output class="c f" id="cmp-mo-buy"></output><span>Point 구매</span></div>
+      </div>
+    </div>
+    <p class="calc-note">메포 수수료까지 넣은 메소 양을 억 단위로 반올림해서 위의 메소 계산에 넘겨요.</p>
+  </section>
+
+  <!-- 4. 현금 → 메포 -->
+  <section class="calc" id="v-cp" hidden>
+    <div class="blk">
+      <div class="blk-h"><h2>현금 ↔ 메포</h2></div>
+      <div class="stack">
+        <div class="ln"><span class="unit lb">결제 할인<button class="tip" type="button" data-tip="disc" aria-label="결제 할인 설명">ⓘ</button></span><input class="c in" id="cp-disc" inputmode="decimal" data-k="cpDisc"><span class="unit">%</span></div>
+        <div class="ln"><span class="unit lb">플포 비율 (1포인트당)<button class="tip" type="button" data-tip="pp" aria-label="플포 비율 설명">ⓘ</button></span><input class="c in" id="cp-pp" inputmode="decimal" data-k="cpPp"><span class="unit">원</span></div>
+        <div class="ln"><span class="unit">계산할 메포</span><input class="c in" id="cp-want" inputmode="decimal" data-k="cpWant"><span class="unit">메포</span></div>
+      </div>
+      <div class="kgrid">
+        <span></span><span class="hd">구글 플포 1</span><span class="hd">구글 플포 2</span>
+        <span class="unit">쓰는 플포</span><output class="c k">750</output><output class="c k">1,200</output>
+        <span class="unit">최대 결제</span><output class="c k">15,000</output><output class="c k">25,000</output>
+        <span class="unit">상품 (메포)</span><output class="c k">12,000</output><output class="c k">33,000</output>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="blk">
+        <div class="blk-h"><h2>750포 → 12,000메포</h2></div>
+        <div class="stack">
+          <div class="ln"><output class="c f" id="cp-1p-cost"></output><span>원에 구매</span></div>
+          <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-1p-unit"></output><span>원</span></div>
+          <div class="ln total"><output class="c f" id="cp-1p-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-1p-total"></output><span>원</span></div>
+        </div>
+      </div>
+      <div class="blk">
+        <div class="blk-h"><h2>12,000메포 직접 결제</h2></div>
+        <div class="stack">
+          <div class="ln"><output class="c f" id="cp-1d-cost"></output><span>원에 구매</span></div>
+          <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-1d-unit"></output><span>원</span></div>
+          <div class="ln total"><output class="c f" id="cp-1d-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-1d-total"></output><span>원</span></div>
+        </div>
+      </div>
+      <div class="blk">
+        <div class="blk-h"><h2>1200포 → 33,000메포</h2></div>
+        <div class="stack">
+          <div class="ln"><output class="c f" id="cp-2p-cost"></output><span>원에 구매</span></div>
+          <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-2p-unit"></output><span>원</span></div>
+          <div class="ln total"><output class="c f" id="cp-2p-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-2p-total"></output><span>원</span></div>
+        </div>
+      </div>
+      <div class="blk">
+        <div class="blk-h"><h2>33,000메포 직접 결제</h2></div>
+        <div class="stack">
+          <div class="ln"><output class="c f" id="cp-2d-cost"></output><span>원에 구매</span></div>
+          <div class="ln"><span>1메포</span><span class="arrow">=</span><output class="c f" id="cp-2d-unit"></output><span>원</span></div>
+          <div class="ln total"><output class="c f" id="cp-2d-want"></output><span>메포</span><span class="arrow">=</span><output class="c f" id="cp-2d-total"></output><span>원</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="calc-note">플포 쿠폰은 한 번 결제에 하나만 쓸 수 있고, 750포와 1200포 쿠폰은 같이 쓸 수 없어요.</p>
+  </section>
+
+  <!-- 5. 메소 경유 vs 현금 결제 비교 -->
+  <section class="calc" id="v-vs" hidden>
+    <div class="blk">
+      <div class="blk-h"><h2>같은 메포, 어떻게 사는 게 쌀까?</h2></div>
+      <div class="stack">
+        <div class="ln"><span class="unit lb">메소 거래 가격 (1억 메소당)<button class="tip" type="button" data-tip="meso" aria-label="메소 거래 가격 설명">ⓘ</button></span><input class="c in" id="vs-price" inputmode="decimal" data-k="vsPrice"><span class="unit">원</span></div>
+        <div class="ln"><span class="unit">메포 거래 가격 (1억 메소당)</span><input class="c in" id="vs-rate" inputmode="decimal" data-k="vsRate"><span class="unit">Point</span></div>
+        <div class="ln"><span class="unit lb">결제 할인<button class="tip" type="button" data-tip="disc" aria-label="결제 할인 설명">ⓘ</button></span><input class="c in" id="vs-disc" inputmode="decimal" data-k="vsDisc"><span class="unit">%</span></div>
+        <div class="ln"><span class="unit lb">플포 비율 (1포인트당)<button class="tip" type="button" data-tip="pp" aria-label="플포 비율 설명">ⓘ</button></span><input class="c in" id="vs-pp" inputmode="decimal" data-k="vsPp"><span class="unit">원</span></div>
+        <div class="ln total"><span class="unit">비교할 메포</span><input class="c in" id="vs-want" inputmode="decimal" data-k="vsWant"><span class="unit">메포</span></div>
+      </div>
+    </div>
+    <div class="blk">
+      <div class="vs-head">
+        <div class="vs-side" id="vs-a"><span class="lbl">현금 → 메소 → 메포</span><output class="c f" id="vs-a-won"></output><span class="how" id="vs-a-how"></span></div>
+        <div class="vs-side" id="vs-b"><span class="lbl">현금 → 메포 (가장 싼 방법)</span><output class="c f" id="vs-b-won"></output><span class="how" id="vs-b-how"></span></div>
+      </div>
+      <output class="c cond vs-verdict" id="vs-verdict"></output>
+      <ul class="vs-list" id="vs-list" aria-label="방법별 비용"></ul>
+    </div>
+    <p class="calc-note">메소 경유는 메포 수수료 1%와 메소 수수료 10%를 넣은 값이에요. 플포 쿠폰은 엑셀처럼 상품의 1메포당 가격에 메포 양을 곱해서 계산해요.</p>
+  </section>
+    <div class="tip-pop" id="tip-pop" role="tooltip" hidden></div>
+  </div>
+</Base>
+
+<script>
+(function () {
+  // jin님 엑셀 '재화 계산기 (메포, 메소, 현금)'과 같은 식. 수수료 배수는 엑셀 그대로 1.11, 1.01
+  var MESO_FEE = 1.11, MEPO_FEE = 1.01;
+  // 고정값(회색 칸): 구글 플포 쿠폰과 상품
+  var C1 = { pp: 750, cap: 15000, mepo: 12000 }, C2 = { pp: 1200, cap: 25000, mepo: 33000 };
+  var DEF = { cmPrice: 650, cmWant: 13, mpPrice: 900, mpWant: 10000, cmpPrice: 650, cmpRate: 1000, cmpWant: 50000, cpDisc: 5, cpPp: 10, cpWant: 50000, vsPrice: 650, vsRate: 1000, vsDisc: 5, vsPp: 10, vsWant: 50000, view: 'cm' };
+  var KEY = 'mgs_calc_v2';
+  var st = Object.assign({}, DEF);
+  try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+  var save = function () { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var n = function (v) { v = Number(String(v).replace(/,/g, '')); return isFinite(v) && v > 0 ? v : 0; };
+  var fmt = function (v, d) { return v.toLocaleString('ko-KR', { maximumFractionDigits: d || 0 }); };
+  var put = function (id, v, d) { $(id).textContent = fmt(v, d); };
+
+  var inputs = document.querySelectorAll('input[data-k]');
+  inputs.forEach(function (el) {
+    el.value = fmt(n(st[el.dataset.k]), 4);
+    el.addEventListener('input', function () { st[el.dataset.k] = el.value; save(); calc(); });
+    el.addEventListener('focus', function () { el.select(); });
+    el.addEventListener('blur', function () { el.value = fmt(n(el.value), 4); });
+  });
+
+  var pick = $('pick');
+  function show(v) {
+    ['cm', 'mp', 'cmp', 'cp', 'vs'].forEach(function (k) { $('v-' + k).hidden = k !== v; });
+    pick.value = v; st.view = v; save();
+  }
+  pick.addEventListener('change', function () { show(pick.value); });
+
+  function calc() {
+    // 1. 현금 → 메소
+    var p = n(st.cmPrice), w = n(st.cmWant);
+    put('cm-x-won', p * w); put('cm-x-buy', w, 2);
+    put('cm-o-want', w, 2); put('cm-o-buy', w * MESO_FEE, 2); put('cm-o-won', p * w * MESO_FEE);
+
+    // 2. 메소 → 메포
+    var r = n(st.mpPrice), pt = n(st.mpWant);
+    put('mp-x-meso', r ? pt / r : 0, 2); put('mp-x-buy', pt);
+    put('mp-o-want', pt); put('mp-o-buy', pt * MEPO_FEE, 2); put('mp-o-meso', r ? pt * MEPO_FEE / r : 0, 2);
+
+    // 3. 현금 → 메소 → 메포: 메포 칸의 메소 양(반올림)이 메소 칸으로 넘어갑니다
+    var cp = n(st.cmpPrice), cr = n(st.cmpRate), cw = n(st.cmpWant);
+    var meso = cr ? Math.round(cw * MEPO_FEE / cr) : 0;
+    put('cmp-mx-meso', cr ? cw / cr : 0, 2); put('cmp-mx-buy', cw);
+    put('cmp-mo-want', cw); put('cmp-mo-buy', cw * MEPO_FEE, 2); put('cmp-mo-meso', meso);
+    put('cmp-x-meso', meso); put('cmp-x-won', cp * meso); put('cmp-x-buy', meso);
+    put('cmp-o-meso', meso); put('cmp-o-buy', meso * MESO_FEE, 2); put('cmp-o-won', cp * meso * MESO_FEE);
+    put('cmp-s-price', cp); put('cmp-s-rate', cr); put('cmp-s-want', cw); put('cmp-s-won', cp * meso * MESO_FEE);
+
+    // 4. 현금 → 메포
+    var d = n(st.cpDisc) / 100, pw = n(st.cpPp), mw = n(st.cpWant);
+    [['1', C1], ['2', C2]].forEach(function (x) {
+      var i = x[0], c = x[1];
+      var plCost = c.pp * pw + Math.max(0, c.mepo - c.cap) * (1 - d);
+      var dCost = c.mepo * (1 - d);
+      put('cp-' + i + 'p-cost', plCost); put('cp-' + i + 'p-unit', plCost / c.mepo, 3); put('cp-' + i + 'p-want', mw); put('cp-' + i + 'p-total', plCost / c.mepo * mw);
+      put('cp-' + i + 'd-cost', dCost); put('cp-' + i + 'd-unit', 1 - d, 3); put('cp-' + i + 'd-want', mw); put('cp-' + i + 'd-total', (1 - d) * mw);
+    });
+
+    // 5. 메소 경유 vs 현금 결제
+    var vp = n(st.vsPrice), vr = n(st.vsRate), vd = n(st.vsDisc) / 100, vpp = n(st.vsPp), vw = n(st.vsWant);
+    var vMeso = vr ? Math.round(vw * MEPO_FEE / vr) : 0;
+    var ways = [{ grp: '메소 경유', name: '현금 → 메소 → 메포', cost: vp * vMeso * MESO_FEE, how: fmt(vMeso * MESO_FEE, 2) + '억 메소 구매 → ' + fmt(vMeso) + '억 메소로 메포 교환', a: true }];
+    [C1, C2].forEach(function (c) {
+      var cost = c.pp * vpp + Math.max(0, c.mepo - c.cap) * (1 - vd);
+      ways.push({ grp: '현금 결제', name: fmt(c.pp) + '포 쿠폰', cost: cost / c.mepo * vw, how: fmt(c.mepo) + '메포 상품 ' + fmt(cost) + '원 기준' });
+    });
+    ways.push({ grp: '현금 결제', name: '직접 결제', cost: (1 - vd) * vw, how: '할인 ' + fmt(vd * 100, 2) + '% 적용' });
+    var A = ways[0], B = ways.slice(1).sort(function (x, y) { return x.cost - y.cost; })[0];
+    $('vs-a-won').textContent = fmt(A.cost) + '원'; $('vs-a-how').textContent = '1메포당 ' + fmt(vw ? A.cost / vw : 0, 3) + '원';
+    $('vs-b-won').textContent = fmt(B.cost) + '원'; $('vs-b-how').textContent = B.name + ', 1메포당 ' + fmt(vw ? B.cost / vw : 0, 3) + '원';
+    var diff = Math.round(Math.abs(A.cost - B.cost));
+    $('vs-a').classList.toggle('win', A.cost < B.cost);
+    $('vs-b').classList.toggle('win', B.cost < A.cost);
+    $('vs-verdict').textContent = !vw ? '비교할 메포를 넣어 주세요.' : diff === 0 ? '두 방법의 비용이 같아요.'
+      : A.cost < B.cost ? '현금 → 메소 → 메포가 ' + fmt(diff) + '원 더 싸요.'
+      : '현금 → 메포(' + B.name + ')가 ' + fmt(diff) + '원 더 싸요.';
+    var low = Math.min.apply(null, ways.map(function (x) { return x.cost; }));
+    $('vs-list').innerHTML = ways.slice().sort(function (x, y) { return x.cost - y.cost; }).map(function (x) {
+      return '<li><span class="nm">' + x.name + ' <span class="grp">' + x.grp + '</span>' + (vw && x.cost === low ? ' <span class="best">가장 저렴</span>' : '') + '</span>' +
+        '<output class="c f">' + fmt(x.cost) + '원</output><span class="sub">' + x.how + '</span></li>';
+    }).join('');
+  }
+
+
+  // ⓘ 설명: PC는 마우스를 올리면 보이고 벗어나면 사라짐, 모바일은 누르면 보이고 다른 곳을 누르면 사라짐
+  var TIPS = {
+    meso: '메소와 현금 거래 비율입니다. 1:600이라면 1억 메소가 현금 600원입니다.',
+    disc: '현금 결제 시 할인받는 비율입니다. 구글 기프트카드 7% 할인, 문상 6% 할인, 혹은 5% 적립 등에 쓰일 수 있습니다.',
+    pp: '구글 플레이 포인트 현금 거래 비율입니다. 1:10의 경우 플포 1이 현금 10원입니다. 1:12는 플포 1이 현금 12원입니다.'
+  };
+  var pop = $('tip-pop'), cur = null;
+  function showTip(b) {
+    if (cur && cur !== b) cur.setAttribute('aria-expanded', 'false');
+    cur = b; b.setAttribute('aria-expanded', 'true'); b.setAttribute('aria-describedby', 'tip-pop');
+    pop.textContent = TIPS[b.dataset.tip]; pop.hidden = false;
+    var r = b.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), innerWidth - w - 12);
+    var top = r.top - h - 8; if (top < 12) top = r.bottom + 8;
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  function hideTip() {
+    if (cur) { cur.setAttribute('aria-expanded', 'false'); cur.removeAttribute('aria-describedby'); }
+    cur = null; pop.hidden = true;
+  }
+  document.querySelectorAll('.tip').forEach(function (b) {
+    b.setAttribute('aria-expanded', 'false');
+    b.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') showTip(b); });
+    b.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hideTip(); });
+    b.addEventListener('focus', function () { if (b.matches(':focus-visible')) showTip(b); });
+    b.addEventListener('blur', hideTip);
+    b.addEventListener('click', function (e) { e.stopPropagation(); if (cur === b && e.pointerType !== 'mouse') hideTip(); else showTip(b); });
+  });
+  document.addEventListener('click', function () { if (cur) hideTip(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideTip(); });
+  addEventListener('scroll', function () { if (cur) hideTip(); }, { passive: true });
+  addEventListener('resize', hideTip);
+
+  show(['cm', 'mp', 'cmp', 'cp', 'vs'].indexOf(st.view) >= 0 ? st.view : 'cm');
+  calc();
+})();
+</script>
