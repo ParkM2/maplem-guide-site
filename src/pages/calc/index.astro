@@ -185,11 +185,11 @@ import '../../styles/calc.css';
     p1200: { name: '1200플포 쿠폰', pp: 1200, off: 25000 },
     w50: { name: '50% 주간 할인', pp: 0, rate: 0.5, max: 6500 }
   };
-  // 상품 금액(원) = 메포 양. 쓸 수 없으면 null
-  function ppCost(m, price, ppWon) {
-    if (m.rate) return price - Math.min(price * m.rate, m.max);
+  // 상품 금액(원) = 메포 양. 결제 할인은 구글 할인을 받고 남은 금액에 적용. 쓸 수 없으면 null
+  function ppCost(m, price, ppWon, disc) {
+    if (m.rate) return (price - Math.min(price * m.rate, m.max)) * (1 - disc);
     if (price < m.off) return null;
-    return m.pp * ppWon + (price - m.off);
+    return m.pp * ppWon + (price - m.off) * (1 - disc);
   }
   function fillMethod(pre, m) {
     $(pre + '-k-pp').textContent = m.pp ? fmt(m.pp) : '-';
@@ -270,7 +270,7 @@ import '../../styles/calc.css';
     $('cp-pp').disabled = !!cm.rate;
     $('cp-d-h').textContent = fmt(mw) + '메포 직접 결제';
     put('cp-d-cost', mw * (1 - d)); put('cp-d-unit', 1 - d, 3);
-    var pc = ppCost(cm, mw, n(st.cpPp));
+    var pc = ppCost(cm, mw, n(st.cpPp), d);
     $('cp-p-card').hidden = !st.cpUsePp || pc === null;
     $('cp-p-warn').hidden = !st.cpUsePp || pc !== null;
     $('cp-p-warn').textContent = cm.name + '은 ' + fmt(cm.off || 0) + '원 이상 상품에만 쓸 수 있어서 ' + fmt(mw) + '메포 상품에는 못 써요.';
@@ -287,7 +287,7 @@ import '../../styles/calc.css';
     $('vs-pp').disabled = !!vm.rate;
     var vMeso = vr ? Math.round(vw * MEPO_FEE / vr) : 0;
     var ways = [{ grp: '메소 경유', name: '현금 → 메소 → 메포', cost: vp * vMeso * MESO_FEE, how: fmt(vMeso * MESO_FEE, 2) + '억 메소 구매 → ' + fmt(vMeso) + '억 메소로 메포 교환', a: true }];
-    var vpc = st.vsUsePp ? ppCost(vm, vw, n(st.vsPp)) : null;
+    var vpc = st.vsUsePp ? ppCost(vm, vw, n(st.vsPp), vd) : null;
     if (vpc !== null) ways.push({ grp: '구글 플포', name: vm.name, cost: vpc, how: vm.pp ? fmt(vm.pp) + '플포 사용, ' + fmt(vm.off) + '원 할인' : fmt(Math.min(vw * vm.rate, vm.max)) + '원 할인' });
     $('vs-pp-warn').hidden = !st.vsUsePp || vpc !== null;
     $('vs-pp-warn').textContent = vm.name + '은 ' + fmt(vm.off || 0) + '원 이상 상품에만 쓸 수 있어서 비교에서 뺐어요.';
@@ -312,7 +312,7 @@ import '../../styles/calc.css';
   // ⓘ 설명: PC는 마우스를 올리면 보이고 벗어나면 사라짐, 모바일은 누르면 보이고 다른 곳을 누르면 사라짐
   var TIPS = {
     meso: '메소와 현금 거래 비율입니다. 1:600이라면 1억 메소가 현금 600원입니다.',
-    disc: '문상 6% 할인, MC 5% 적립 등 직접 결제 시 할인받는 비율을 넣어요. 직접 결제에만 적용돼요.',
+    disc: '문상 6% 할인, MC 5% 적립 등 결제 시 할인받는 비율을 넣어요. 구글 할인을 쓰면 상품 금액에서 구글 할인을 뺀 남은 금액에 적용돼요.',
     method: '150포는 3,000원 할인(3,000원 이상 상품), 750포는 15,000원 할인(15,000원 이상 상품), 1200포는 25,000원 할인(25,000원 이상 상품), 50% 주간은 상품 금액의 50%를 최대 6,500원까지 할인해요.',
     mepo: '메포 구매라면, 메소마켓의 메소 판매 탭 가격이에요. 예를 들어 1억 메소당 메이플 포인트가 1,000일 때, 10억 메소를 판매하면 수수료 1%가 차감된 9,900메포가 들어와요.',
     pp: '구글 플레이 포인트 현금 거래 비율입니다. 1:10의 경우 플포 1이 현금 10원입니다. 1:12는 플포 1이 현금 12원입니다.'
