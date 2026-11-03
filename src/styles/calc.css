@@ -109,3 +109,13 @@
 .calc-page .seg button[aria-checked="true"] { background: var(--in-bg); border-color: var(--in-line); color: var(--ink); }
 :root[data-theme="light"] .calc-page .seg button[aria-checked="true"] { color: #1b2130; }
 .calc-page .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 구글 플포 사용 체크박스, 할인 방법 콤보 박스 */
+.calc-page .chk { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.calc-page .chk input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.calc-page .pp-box { display: grid; gap: 8px; padding: 10px 0 0 12px; border-left: 2px solid var(--rule); }
+.calc-page .pp-box .kgrid { grid-template-columns: auto 1fr; padding: 4px 0 0; justify-items: start; }
+.calc-page select.c { appearance: auto; font-family: inherit; font-size: 15px; justify-content: flex-start; cursor: pointer; }
+:root[data-theme="light"] .calc-page select.c.in { color: #1b2130; }
+.calc-page .cp-warn { grid-column: 1 / -1; display: block; padding: 10px 14px; text-align: left; line-height: 1.5; }
+:root[data-theme="light"] .calc-page .cp-warn { color: #1b2130; }
