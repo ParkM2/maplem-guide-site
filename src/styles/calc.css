@@ -148,6 +148,7 @@
   .calc-page .cap-win { left: 16px; right: 16px; width: auto; }
 }
 .calc-page .cap-src { position: fixed; left: -100000px; top: 0; margin: 0; padding: 16px; box-sizing: content-box; font-family: "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
-.calc-page .cap-src * { font-family: inherit !important; }
-.calc-page .cap-src .c:not(.cond):not(select) { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; }
+.calc-page .cap-src:not(.cap-web) * { font-family: inherit !important; }
+.calc-page .cap-src.cap-web { font-family: inherit; }
+.calc-page .cap-src:not(.cap-web) .c:not(.cond):not(select) { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; }
 .calc-page .cap-src .dtl-hint { display: none; }

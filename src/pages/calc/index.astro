@@ -374,6 +374,35 @@ import '../../styles/calc.css';
   addEventListener('resize', hideTip);
 
   // 결과 캡쳐: 지금 보고 있는 계산기(입력값과 결과)를 이미지로 만들어 아래 창에 띄워요. _ 는 접기, × 는 닫기
+  // 캡쳐 이미지 안에서는 웹 글꼴을 따로 넣어 줘야 해서, 화면에 쓰인 글자가 들어 있는 글꼴 조각만 받아 이미지에 넣어요
+  var FONT_CSS = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap';
+  var fontCache = {}, fontSheet = null;
+  function inRange(range, codes) {
+    return range.split(',').some(function (part) {
+      var m = part.trim().replace(/^U\+/i, '').split('-'), lo = parseInt(m[0], 16), hi = m[1] ? parseInt(m[1], 16) : lo;
+      for (var c of codes) if (c >= lo && c <= hi) return true;
+      return false;
+    });
+  }
+  function toData(url) {
+    if (!fontCache[url]) fontCache[url] = fetch(url).then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) {
+      return new Promise(function (ok, no) { var fr = new FileReader(); fr.onload = function () { ok(fr.result); }; fr.onerror = no; fr.readAsDataURL(b); });
+    });
+    return fontCache[url];
+  }
+  function fontCss(text) {
+    if (window.__capFont) return Promise.resolve(window.__capFont); // 미리보기용: 글꼴을 미리 넣어 둔 경우
+    var codes = new Set(); for (var ch of text) codes.add(ch.codePointAt(0));
+    fontSheet = fontSheet || fetch(FONT_CSS).then(function (r) { if (!r.ok) throw 0; return r.text(); });
+    return fontSheet.then(function (css) {
+      var blocks = css.match(/@font-face\s*{[^}]*}/g) || [];
+      return Promise.all(blocks.map(function (bl) {
+        var u = bl.match(/url\(([^)]+)\)/), rg = bl.match(/unicode-range:\s*([^;]+);/);
+        if (!u || (rg && !inRange(rg[1], codes))) return '';
+        return toData(u[1]).then(function (d) { return bl.replace(u[1], d); });
+      }));
+    }).then(function (list) { var out = list.join('\n'); if (!out) throw 0; return out; });
+  }
   var capWin = $('cap-win'), capBtn = $('cap-btn'), capImg = $('cap-img'), capFold = $('cap-fold');
   function fold(on) {
     capWin.classList.toggle('folded', on);
@@ -401,8 +430,11 @@ import '../../styles/calc.css';
     box.classList.add('cap-src');
     box.style.width = sec.offsetWidth + 'px';
     sec.parentNode.appendChild(box);
-    import('html-to-image').then(function (h) {
-      return h.toCanvas(box, { pixelRatio: Math.min(window.devicePixelRatio || 1, 2), backgroundColor: bg, skipFonts: true, style: { position: 'static', left: '0', top: '0' } });
+    var text = box.textContent + [].map.call(src, function (el) { return el.value; }).join('');
+    Promise.all([import('html-to-image'), fontCss(text).catch(function () { return null; })]).then(function (r) {
+      // 사이트 글꼴을 이미지에 넣을 수 있으면 화면과 같은 글꼴로, 못 넣으면 기기 기본 글꼴로 그려요
+      if (r[1]) box.classList.add('cap-web');
+      return r[0].toCanvas(box, { pixelRatio: Math.min(window.devicePixelRatio || 1, 2), backgroundColor: bg, fontEmbedCSS: r[1] || '', skipFonts: !r[1], style: { position: 'static', left: '0', top: '0' } });
     }).finally(function () { box.remove(); }).then(function (cv) {
       var url = cv.toDataURL('image/png');
       capImg.src = url; $('cap-save').href = url;
