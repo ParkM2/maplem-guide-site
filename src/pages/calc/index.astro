@@ -10,8 +10,8 @@ import '../../styles/calc.css';
     <CalcNav current="mepo" />
   <div class="h1row"><h1>메포 계산기</h1><span class="h1-note">메소로 메포 구매하는 건 MVP 반영이 되지 않습니다.</span></div>
 
+  <div class="pick-row">
   <div class="pick">
-    
     <select id="pick" aria-label="계산기 고르기">
       <option value="cm">현금 → 메소</option>
       <option value="mp">메소 → 메포</option>
@@ -19,6 +19,8 @@ import '../../styles/calc.css';
       <option value="cp">현금 → 메포</option>
       <option value="vs">메소 경유 vs 현금 결제 비교</option>
     </select>
+  </div>
+  <button type="button" class="cap-btn" id="cap-btn"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>결과 캡쳐</span></button>
   </div>
 
   <ul class="legend" aria-label="칸 색 설명">
@@ -160,16 +162,21 @@ import '../../styles/calc.css';
     </div>
     <div class="blk">
       <div class="vs-head">
-        <div class="vs-side" id="vs-a"><span class="lbl">현금 → 메소 → 메포</span><output class="c f" id="vs-a-won"></output><span class="how" id="vs-a-how"></span></div>
-        <div class="vs-side" id="vs-b"><span class="lbl">현금 결제 (가장 싼 방법)</span><output class="c f" id="vs-b-won"></output><span class="how" id="vs-b-how"></span></div>
+        <div class="vs-side dtl" id="vs-a" tabindex="0"><span class="lbl">현금 → 메소 → 메포</span><output class="c f" id="vs-a-won"></output><span class="how" id="vs-a-how"></span></div>
+        <div class="vs-side dtl" id="vs-b" tabindex="0"><span class="lbl">현금 결제 (가장 싼 방법)</span><output class="c f" id="vs-b-won"></output><span class="how" id="vs-b-how"></span></div>
       </div>
       <output class="c cond vs-verdict" id="vs-verdict"></output>
       <output class="c cond vs-verdict" id="vs-pp-warn" hidden></output>
       <ul class="vs-list" id="vs-list" aria-label="방법별 비용"></ul>
+      <p class="calc-note dtl-hint">결과에 마우스를 올리거나 한 번 누르면 계산 과정이 보여요.</p>
     </div>
     <p class="calc-note">메소 경유는 메포 수수료 1%와 메소 수수료 10%를 넣은 값이에요. 플포 쿠폰은 할인 금액 이상인 상품에만 쓸 수 있어요.</p>
   </section>
     <div class="tip-pop" id="tip-pop" role="tooltip" hidden></div>
+    <div class="cap-win" id="cap-win" role="dialog" aria-label="결과 캡쳐" hidden>
+      <div class="cap-bar"><strong>결과 캡쳐</strong><button type="button" class="cap-ic" id="cap-fold" aria-label="접기" aria-expanded="true">_</button><button type="button" class="cap-ic" id="cap-x" aria-label="닫기">×</button></div>
+      <div class="cap-body" id="cap-body"><img id="cap-img" alt="계산 결과 캡쳐" draggable="false"><a class="cap-save" id="cap-save" download="메포계산기.png">이미지 저장</a></div>
+    </div>
   </div>
 </Base>
 
@@ -286,15 +293,30 @@ import '../../styles/calc.css';
     fillMethod('vs', vm);
     $('vs-pp').disabled = !!vm.rate;
     var vMeso = vr ? Math.round(vw * MEPO_FEE / vr) : 0;
-    var ways = [{ grp: '메소 경유', name: '현금 → 메소 → 메포', cost: vp * vMeso * MESO_FEE, how: fmt(vMeso * MESO_FEE, 2) + '억 메소 구매 → ' + fmt(vMeso) + '억 메소로 메포 교환', a: true }];
+    var pct = fmt(vd * 100, 2) + '%';
+    var ways = [{ grp: '메소 경유', name: '현금 → 메소 → 메포', cost: vp * vMeso * MESO_FEE, how: fmt(vMeso * MESO_FEE, 2) + '억 메소 구매 → ' + fmt(vMeso) + '억 메소로 메포 교환', a: true,
+      det: '메포 수수료 1%: ' + fmt(vw) + ' × 1.01 = ' + fmt(vw * MEPO_FEE, 2) + '메포\n' +
+        '필요 메소: ' + fmt(vw * MEPO_FEE, 2) + ' ÷ ' + fmt(vr) + ' = ' + fmt(vr ? vw * MEPO_FEE / vr : 0, 2) + ' → ' + fmt(vMeso) + '억 메소 (반올림)\n' +
+        '메소 수수료 10%: ' + fmt(vMeso) + ' × 1.11 = ' + fmt(vMeso * MESO_FEE, 2) + '억 메소 구매\n' +
+        '비용: ' + fmt(vMeso * MESO_FEE, 2) + ' × ' + fmt(vp) + '원 = ' + fmt(vp * vMeso * MESO_FEE) + '원' }];
     var vpc = st.vsUsePp ? ppCost(vm, vw, n(st.vsPp), vd) : null;
-    if (vpc !== null) ways.push({ grp: '구글 플포', name: vm.name, cost: vpc, how: vm.pp ? fmt(vm.pp) + '플포 사용, ' + fmt(vm.off) + '원 할인' : fmt(Math.min(vw * vm.rate, vm.max)) + '원 할인' });
+    if (vpc !== null) {
+      var voff = vm.rate ? Math.min(vw * vm.rate, vm.max) : vm.off, rest = (vw - voff) * (1 - vd);
+      ways.push({ grp: '구글 플포', name: vm.name, cost: vpc, how: vm.pp ? fmt(vm.pp) + '플포 사용, ' + fmt(vm.off) + '원 할인' : fmt(voff) + '원 할인',
+        det: (vm.rate
+          ? '구글 할인: ' + fmt(vw) + ' × 50% = ' + fmt(vw * vm.rate) + '원 (최대 ' + fmt(vm.max) + '원) → ' + fmt(voff) + '원\n'
+          : '플포 값: ' + fmt(vm.pp) + '플포 × ' + fmt(n(st.vsPp), 2) + '원 = ' + fmt(vm.pp * n(st.vsPp)) + '원\n') +
+          '남은 금액: (' + fmt(vw) + ' − ' + fmt(voff) + ') × (1 − ' + pct + ') = ' + fmt(rest) + '원\n' +
+          (vm.rate ? '비용: ' + fmt(rest) + '원' : '비용: ' + fmt(vm.pp * n(st.vsPp)) + ' + ' + fmt(rest) + ' = ' + fmt(vpc) + '원') });
+    }
     $('vs-pp-warn').hidden = !st.vsUsePp || vpc !== null;
     $('vs-pp-warn').textContent = vm.name + '은 ' + fmt(vm.off || 0) + '원 이상 상품에만 쓸 수 있어서 비교에서 뺐어요.';
-    ways.push({ grp: '현금 결제', name: '직접 결제', cost: (1 - vd) * vw, how: '결제 할인 ' + fmt(vd * 100, 2) + '% 적용' });
+    ways.push({ grp: '현금 결제', name: '직접 결제', cost: (1 - vd) * vw, how: '결제 할인 ' + pct + ' 적용',
+      det: '상품 금액 ' + fmt(vw) + '원 (1원 = 1메포)\n비용: ' + fmt(vw) + ' × (1 − ' + pct + ') = ' + fmt((1 - vd) * vw) + '원' });
     var A = ways[0], B = ways.slice(1).sort(function (x, y) { return x.cost - y.cost; })[0];
     $('vs-a-won').textContent = fmt(A.cost) + '원'; $('vs-a-how').textContent = '1메포당 ' + fmt(vw ? A.cost / vw : 0, 3) + '원';
     $('vs-b-won').textContent = fmt(B.cost) + '원'; $('vs-b-how').textContent = B.name + ', 1메포당 ' + fmt(vw ? B.cost / vw : 0, 3) + '원';
+    $('vs-a').dataset.detail = A.name + '\n' + A.det; $('vs-b').dataset.detail = B.name + '\n' + B.det;
     var diff = Math.round(Math.abs(A.cost - B.cost));
     $('vs-a').classList.toggle('win', A.cost < B.cost);
     $('vs-b').classList.toggle('win', B.cost < A.cost);
@@ -303,9 +325,12 @@ import '../../styles/calc.css';
       : '현금 → 메포(' + B.name + ')가 ' + fmt(diff) + '원 더 싸요.';
     var low = Math.min.apply(null, ways.map(function (x) { return x.cost; }));
     $('vs-list').innerHTML = ways.slice().sort(function (x, y) { return x.cost - y.cost; }).map(function (x) {
-      return '<li><span class="nm">' + x.name + ' <span class="grp">' + x.grp + '</span>' + (vw && x.cost === low ? ' <span class="best">가장 저렴</span>' : '') + '</span>' +
+      return '<li class="dtl" tabindex="0" data-detail="' + (x.name + '\n' + x.det).replace(/"/g, '&quot;') + '"><span class="nm">' + x.name + ' <span class="grp">' + x.grp + '</span>' + (vw && x.cost === low ? ' <span class="best">가장 저렴</span>' : '') + '</span>' +
         '<output class="c f">' + fmt(x.cost) + '원</output><span class="sub">' + x.how + '</span></li>';
     }).join('');
+    if (cur && !document.body.contains(cur)) hideTip();
+    else if (cur && cur.dataset.detail) showTip(cur);
+    document.querySelectorAll('#vs-list .dtl').forEach(bindTip);
   }
 
 
@@ -321,7 +346,8 @@ import '../../styles/calc.css';
   function showTip(b) {
     if (cur && cur !== b) cur.setAttribute('aria-expanded', 'false');
     cur = b; b.setAttribute('aria-expanded', 'true'); b.setAttribute('aria-describedby', 'tip-pop');
-    pop.textContent = TIPS[b.dataset.tip]; pop.hidden = false;
+    pop.textContent = b.dataset.tip ? TIPS[b.dataset.tip] : b.dataset.detail || ''; pop.hidden = false;
+    pop.classList.toggle('det', !b.dataset.tip);
     var r = b.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
     var left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), innerWidth - w - 12);
     var top = r.top - h - 8; if (top < 12) top = r.bottom + 8;
@@ -331,18 +357,61 @@ import '../../styles/calc.css';
     if (cur) { cur.setAttribute('aria-expanded', 'false'); cur.removeAttribute('aria-describedby'); }
     cur = null; pop.hidden = true;
   }
-  document.querySelectorAll('.tip').forEach(function (b) {
+  // ⓘ 설명과 비교 결과의 계산 과정 팝업이 같은 방식으로 움직여요
+  function bindTip(b) {
+    if (b.dataset.bound) return; b.dataset.bound = '1';
     b.setAttribute('aria-expanded', 'false');
     b.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') showTip(b); });
     b.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hideTip(); });
     b.addEventListener('focus', function () { if (b.matches(':focus-visible')) showTip(b); });
     b.addEventListener('blur', hideTip);
     b.addEventListener('click', function (e) { e.stopPropagation(); if (cur === b && e.pointerType !== 'mouse') hideTip(); else showTip(b); });
-  });
+  }
+  document.querySelectorAll('.tip, .dtl').forEach(bindTip);
   document.addEventListener('click', function () { if (cur) hideTip(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideTip(); });
   addEventListener('scroll', function () { if (cur) hideTip(); }, { passive: true });
   addEventListener('resize', hideTip);
+
+  // 결과 캡쳐: 지금 보고 있는 계산기(입력값과 결과)를 이미지로 만들어 아래 창에 띄워요. _ 는 접기, × 는 닫기
+  var capWin = $('cap-win'), capBtn = $('cap-btn'), capImg = $('cap-img'), capFold = $('cap-fold');
+  function fold(on) {
+    capWin.classList.toggle('folded', on);
+    capFold.textContent = on ? '□' : '_';
+    capFold.setAttribute('aria-label', on ? '펼치기' : '접기');
+    capFold.setAttribute('aria-expanded', String(!on));
+  }
+  capFold.addEventListener('click', function () { fold(!capWin.classList.contains('folded')); });
+  $('cap-x').addEventListener('click', function () { capWin.hidden = true; });
+  capBtn.addEventListener('click', function () {
+    if (capBtn.disabled) return;
+    hideTip();
+    var label = capBtn.querySelector('span');
+    capBtn.disabled = true; label.textContent = '만드는 중…';
+    var sec = $('v-' + st.view), bg = getComputedStyle(document.body).backgroundColor;
+    // 이미지 안에서는 웹 글꼴을 못 써서, 기기 기본 글꼴로 바꾼 복사본을 화면 밖에 두고 그립니다 (글자가 밀려 줄바꿈되지 않게)
+    var box = sec.cloneNode(true);
+    box.removeAttribute('id'); box.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
+    var src = sec.querySelectorAll('input, select'), dst = box.querySelectorAll('input, select');
+    src.forEach(function (el, i) {
+      if (el.type === 'checkbox') { if (el.checked) dst[i].setAttribute('checked', ''); else dst[i].removeAttribute('checked'); }
+      else if (el.tagName === 'SELECT') dst[i].querySelectorAll('option').forEach(function (o, j) { if (j === el.selectedIndex) o.setAttribute('selected', ''); else o.removeAttribute('selected'); });
+      else dst[i].setAttribute('value', el.value);
+    });
+    box.classList.add('cap-src');
+    box.style.width = sec.offsetWidth + 'px';
+    sec.parentNode.appendChild(box);
+    import('html-to-image').then(function (h) {
+      return h.toCanvas(box, { pixelRatio: Math.min(window.devicePixelRatio || 1, 2), backgroundColor: bg, skipFonts: true, style: { position: 'static', left: '0', top: '0' } });
+    }).finally(function () { box.remove(); }).then(function (cv) {
+      var url = cv.toDataURL('image/png');
+      capImg.src = url; $('cap-save').href = url;
+      $('cap-save').download = '메포계산기-' + pick.options[pick.selectedIndex].text.replace(/[^가-힣0-9a-zA-Z]+/g, '_') + '.png';
+      capWin.hidden = false; fold(false);
+    }).catch(function () {
+      alert('캡쳐를 만들지 못했어요. 잠시 뒤 다시 해 주세요.');
+    }).then(function () { capBtn.disabled = false; label.textContent = '결과 캡쳐'; });
+  });
 
   show(['cm', 'mp', 'cmp', 'cp', 'vs'].indexOf(st.view) >= 0 ? st.view : 'cm');
   calc();
