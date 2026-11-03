@@ -109,3 +109,46 @@
 .calc-page .seg button[aria-checked="true"] { background: var(--in-bg); border-color: var(--in-line); color: var(--ink); }
 :root[data-theme="light"] .calc-page .seg button[aria-checked="true"] { color: #1b2130; }
 .calc-page .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 구글 할인 사용 체크박스, 할인 방법 콤보 박스 */
+.calc-page .chk { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.calc-page .chk input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.calc-page .pp-box { display: grid; gap: 8px; padding: 10px 0 0 12px; border-left: 2px solid var(--rule); }
+.calc-page .pp-box .kgrid { grid-template-columns: auto 1fr; padding: 4px 0 0; justify-items: start; }
+.calc-page select.c { appearance: auto; font-family: inherit; font-size: 15px; justify-content: flex-start; cursor: pointer; }
+:root[data-theme="light"] .calc-page select.c.in { color: #1b2130; }
+.calc-page .cp-warn { grid-column: 1 / -1; display: block; padding: 10px 14px; text-align: left; line-height: 1.5; }
+:root[data-theme="light"] .calc-page .cp-warn { color: #1b2130; }
+.calc-page input.c:disabled { opacity: .4; cursor: not-allowed; }
+/* 비교 결과 계산 과정 팝업 */
+.calc-page .dtl { cursor: help; }
+.calc-page .dtl:hover, .calc-page .dtl[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.calc-page .dtl:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.calc-page .tip-pop.det { white-space: pre-line; max-width: min(360px, calc(100vw - 32px)); font-size: 13px; }
+.calc-page .tip-pop.det::first-line { font-weight: 700; }
+.calc-page .dtl-hint { padding: 8px 16px 0; }
+/* 결과 캡쳐 */
+.calc-page .pick-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.calc-page .pick-row .pick { flex: 1 1 220px; }
+.calc-page .cap-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.calc-page .cap-btn:hover { border-color: var(--accent); }
+.calc-page .cap-btn:disabled { opacity: .6; cursor: wait; }
+.calc-page .cap-win { position: fixed; z-index: 30; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: min(380px, calc(100vw - 32px)); border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,.3); overflow: hidden; }
+.calc-page .cap-bar { display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 14px; border-bottom: 1px solid var(--rule); }
+.calc-page .cap-win.folded .cap-bar { border-bottom: 0; }
+.calc-page .cap-bar strong { flex: 1; font-size: 14px; }
+.calc-page .cap-ic { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.calc-page .cap-ic:hover { background: var(--bg); }
+.calc-page .cap-ic:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.calc-page .cap-body { display: grid; gap: 10px; padding: 12px; max-height: min(50vh, 520px); overflow: auto; }
+.calc-page .cap-win.folded .cap-body { display: none; }
+.calc-page .cap-body img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--rule); }
+.calc-page .cap-save { justify-self: end; font-size: 14px; font-weight: 600; }
+@media (max-width: 520px) {
+  .calc-page .cap-win { left: 16px; right: 16px; width: auto; }
+}
+.calc-page .cap-src { position: fixed; left: -100000px; top: 0; margin: 0; padding: 16px; box-sizing: content-box; font-family: "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+.calc-page .cap-src:not(.cap-web) * { font-family: inherit !important; }
+.calc-page .cap-src.cap-web { font-family: inherit; }
+.calc-page .cap-src:not(.cap-web) .c:not(.cond):not(select) { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace !important; }
+.calc-page .cap-src .dtl-hint { display: none; }
