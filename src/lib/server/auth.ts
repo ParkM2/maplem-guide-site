@@ -10,6 +10,10 @@ const TRUST_COOKIE = 'mgs_trust';
 const PW_COOKIE = 'mgs_pw';
 const STATE_COOKIE = 'mgs_state';
 const DAY = 60 * 60 * 24;
+// 로그인 유지: 마지막으로 쓴 때부터 7일. 글쓰기 화면을 쓰는 동안에는 계속 늘어납니다.
+const SESSION_AGE = 7 * DAY;
+// 이 시간보다 오래된 로그인 표시는 새로 발급해서 기한을 다시 7일로 늘립니다.
+const RENEW_AFTER = 10 * 60;
 const TRUST_AGE = 144 * 60 * 60;
 const STEP_AGE = 10 * 60;
 // 허용한 Google 계정 (공개 저장소라 주소 대신 SHA-256 값을 둡니다. ADMIN_GOOGLE_EMAIL 로 바꿀 수 있음)
@@ -74,10 +78,17 @@ function valid(raw: string | undefined, kind: string) {
 const cookieOpts = (maxAge: number, sameSite: 'strict' | 'lax', path = '/') =>
   ({ path, httpOnly: true, secure: true, sameSite, maxAge }) as const;
 
-// 로그인 유지: 하루. 2단계가 켜져 있을 때는 2단계를 거친 로그인만 인정합니다.
+// 로그인 유지: 7일(쓸 때마다 연장). 2단계가 켜져 있을 때는 2단계를 거친 로그인만 인정합니다.
 export function login(ctx: APIContext) {
   const kind = googleConfigured() ? 'g' : 'p';
-  ctx.cookies.set(COOKIE, token(kind, DAY), cookieOpts(DAY, 'strict'));
+  ctx.cookies.set(COOKIE, token(kind, SESSION_AGE), cookieOpts(SESSION_AGE, 'strict'));
+}
+
+// 로그인한 상태로 API를 쓸 때마다 기한을 다시 7일로 늘립니다 (10분에 한 번만 새로 발급).
+export function renew(ctx: APIContext) {
+  const raw = ctx.cookies.get(COOKIE)?.value ?? '';
+  const exp = Number(raw.split('.')[1] ?? 0);
+  if (exp - Date.now() / 1000 < SESSION_AGE - RENEW_AFTER) login(ctx);
 }
 
 export function logout(ctx: APIContext) {
@@ -128,6 +139,7 @@ export const json = (data: unknown, status = 200) =>
 export function guard(ctx: APIContext) {
   if (!configured()) return json({ error: '관리자 설정(ADMIN_PASSWORD, GITHUB_TOKEN)이 아직 없어요.' }, 503);
   if (!isLoggedIn(ctx)) return json({ error: '다시 로그인해 주세요.' }, 401);
+  renew(ctx);
   return null;
 }
 

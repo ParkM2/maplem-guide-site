@@ -33,6 +33,21 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+  <!-- 쓰는 도중 로그인이 풀렸을 때: 화면을 떠나지 않고 여기서 다시 로그인합니다 -->
+  <dialog id="relogin" class="relogin">
+    <form id="relogin-form" class="stack" method="dialog">
+      <h2>다시 로그인해 주세요</h2>
+      <p class="hint">로그인 시간이 지났어요. 쓰던 글은 그대로 있고, 로그인하면 하던 일(발행 등)을 이어서 해요.</p>
+      <label for="relogin-pw">관리자 비밀번호</label>
+      <input id="relogin-pw" type="password" autocomplete="current-password" required />
+      <p id="relogin-err" class="relogin-err" hidden></p>
+      <div class="row">
+        <button type="button" id="relogin-cancel">나중에</button>
+        <button class="primary" type="submit" id="relogin-ok">로그인</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- 불러오는 중 (편집기 코드가 실행되지 않으면 이유를 보여 줌) -->
   <section id="view-loading" class="wr-wrap narrow">
     <p id="loading-msg" class="hint">불러오는 중…</p>
@@ -147,6 +162,14 @@ import ThemeToggle from '../../components/ThemeToggle.astro';
         <button type="button" id="ed-draft" title="사이트에 올리지 않고 저장해요. 나중에 이어서 쓸 수 있어요.">임시 저장</button>
         <button type="button" id="ed-save" class="primary">발행</button>
       </div>
+    </div>
+
+    <div id="ed-restore" class="notice restore" hidden>
+      <span id="ed-restore-msg"></span>
+      <span class="row">
+        <button type="button" id="ed-restore-yes" class="primary">되살리기</button>
+        <button type="button" id="ed-restore-no">버리기</button>
+      </span>
     </div>
 
     <div class="ed-toolbar" role="toolbar" aria-label="편집 도구">

@@ -13,6 +13,7 @@ import { Placeholder } from '@tiptap/extensions';
 import { openImageEditor } from './image-editor';
 import { loadStats } from './stats';
 import { loadBoard, setupNotice } from './board';
+import { clearBackup, loadBackup, saveBackup } from './backup';
 
 // 예전에 마크다운으로 쓴 글은 HTML로 바꿔서 편집기에 넣습니다 (사이트와 같은 모양).
 function toHtml(body: string) {
@@ -152,7 +153,9 @@ function toast(msg: string, error = false) {
   toastTimer = window.setTimeout(() => (t.hidden = true), error ? 6000 : 3500);
 }
 
-async function api(path: string, init: RequestInit = {}) {
+// 처음 화면을 다 불러온 뒤에는, 로그인이 풀려도 화면을 바꾸지 않고 로그인 창을 띄운 뒤 같은 요청을 다시 합니다.
+let booted = false;
+async function api(path: string, init: RequestInit = {}, retried = false): Promise<any> {
   const res = await fetch(path, {
     ...init,
     headers: init.body ? { 'content-type': 'application/json' } : undefined,
@@ -160,6 +163,10 @@ async function api(path: string, init: RequestInit = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
+    if (booted && !retried && path !== '/api/login') {
+      if (await relogin()) return api(path, init, true);
+      throw new Error('로그인하지 않아서 멈췄어요. 쓰던 글은 그대로 있어요. 다시 누르면 로그인 창이 떠요.');
+    }
     show('login');
     throw new Error(data.error || '다시 로그인해 주세요.');
   }
@@ -178,10 +185,95 @@ $('#login-form').addEventListener('submit', async (e) => {
     // 2단계: Google 로그인 화면으로
     if (r.next) return void (location.href = r.next);
     await loadAll();
+    booted = true;
     route();
   } catch (err) {
     toast((err as Error).message, true);
   }
+});
+
+// ---------- 다시 로그인 (쓰던 화면 위에 창으로) ----------
+const RESUME = 'mgs_resume';
+let reloginP: Promise<boolean> | null = null;
+let leaving = false;
+function relogin(): Promise<boolean> {
+  reloginP ??= new Promise<boolean>((resolve) => {
+    const dlg = $<HTMLDialogElement & HTMLElement>('#relogin');
+    const form = $<HTMLFormElement>('#relogin-form');
+    const pw = $<HTMLInputElement>('#relogin-pw');
+    const err = $('#relogin-err');
+    const ok = $<HTMLButtonElement>('#relogin-ok');
+    err.hidden = true;
+    pw.value = '';
+    const done = (v: boolean) => {
+      form.removeEventListener('submit', onSubmit);
+      $('#relogin-cancel').removeEventListener('click', onCancel);
+      dlg.removeEventListener('cancel', onCancel);
+      if (dlg.open) dlg.close();
+      reloginP = null;
+      resolve(v);
+    };
+    const onCancel = (e: Event) => {
+      e.preventDefault();
+      done(false);
+    };
+    const onSubmit = async (e: Event) => {
+      e.preventDefault();
+      ok.disabled = true;
+      err.hidden = true;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ password: pw.value }),
+        });
+        const r = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(r.error || `오류가 났어요 (${res.status})`);
+        if (r.next) {
+          // Google 로그인을 거쳐야 할 때: 쓰던 글을 보관하고, 돌아오면 같은 화면에서 되살립니다.
+          await backupNow();
+          try {
+            localStorage.setItem(RESUME, location.hash || '#list');
+          } catch {
+            /* 무시 */
+          }
+          leaving = true;
+          location.href = r.next;
+          return;
+        }
+        done(true);
+      } catch (er) {
+        err.textContent = (er as Error).message;
+        err.hidden = false;
+      } finally {
+        ok.disabled = false;
+      }
+    };
+    form.addEventListener('submit', onSubmit);
+    $('#relogin-cancel').addEventListener('click', onCancel);
+    dlg.addEventListener('cancel', onCancel);
+    backupNow();
+    dlg.showModal();
+    pw.focus();
+  });
+  return reloginP;
+}
+
+// 글쓰기 화면이 열려 있는 동안 10분마다 로그인을 연장하고, 풀렸으면 미리 로그인 창을 띄웁니다.
+async function checkSession() {
+  if (!booted || $('#view-editor').hidden || reloginP) return;
+  try {
+    const s = await (await fetch('/api/login', { cache: 'no-store', credentials: 'same-origin' })).json();
+    if (s.configured && !s.loggedIn) relogin();
+  } catch {
+    /* 연결이 잠깐 끊긴 것: 다음에 다시 확인 */
+  }
+}
+setInterval(checkSession, 10 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkSession();
+  else backupNow();
 });
 
 $('#logout').addEventListener('click', async () => {
@@ -868,6 +960,69 @@ function fillCategorySelect(selected?: string) {
   if (selected) $<HTMLSelectElement>('#m-category').value = selected;
 }
 
+// ---------- 쓰던 글 자동 보관 ----------
+const META_FIELDS = ['#m-slug', '#m-category', '#m-summary', '#m-patch', '#m-updated', '#m-order'];
+const backupKey = () => (current.about ? 'about' : current.file ?? 'new');
+let lastBackup = '';
+async function backupNow() {
+  if (!editor || $('#view-editor').hidden || !dirty) return;
+  const meta: Record<string, string> = {};
+  for (const id of META_FIELDS) meta[id] = $<HTMLInputElement>(id).value;
+  const b = { key: backupKey(), title: $<HTMLInputElement>('#ed-title').value, body: editor.getHTML(), meta, keywords: [...keywords], savedAt: Date.now() };
+  const sig = JSON.stringify([b.key, b.title, b.body, b.meta, b.keywords]);
+  if (sig === lastBackup) return;
+  lastBackup = sig;
+  await saveBackup(b);
+}
+setInterval(() => void backupNow(), 3000);
+window.addEventListener('pagehide', () => void backupNow());
+
+function applyBackup(b: Awaited<ReturnType<typeof loadBackup>>) {
+  if (!b || !editor) return;
+  $<HTMLInputElement>('#ed-title').value = b.title;
+  if (!current.about) {
+    for (const [id, v] of Object.entries(b.meta)) if ($(id)) $<HTMLInputElement>(id).value = v;
+    setKeywords(b.keywords ?? []);
+  }
+  editor.commands.setContent(b.body);
+  dirty = true;
+  lastBackup = '';
+  updateToc();
+}
+
+// 편집기를 열 때 보관해 둔 글이 있으면 되살릴지 물어봅니다. (로그인하고 돌아온 경우는 바로 되살림)
+async function offerBackup() {
+  const box = $('#ed-restore');
+  box.hidden = true;
+  const key = backupKey();
+  const b = await loadBackup(key);
+  if (!b || backupKey() !== key || $('#view-editor').hidden) return;
+  let resume = false;
+  try {
+    resume = localStorage.getItem(RESUME) !== null;
+    localStorage.removeItem(RESUME);
+  } catch {
+    /* 무시 */
+  }
+  if (resume) {
+    applyBackup(b);
+    toast('로그인 전에 쓰던 글을 되살렸어요. 발행(저장)을 다시 눌러 주세요.');
+    return;
+  }
+  const when = new Date(b.savedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  $('#ed-restore-msg').textContent = `저장하지 않은 채 남은 글이 있어요 (${when}${b.title ? ` · ${b.title}` : ''}).`;
+  box.hidden = false;
+  $('#ed-restore-yes').onclick = () => {
+    box.hidden = true;
+    applyBackup(b);
+    toast('쓰던 글을 되살렸어요.');
+  };
+  $('#ed-restore-no').onclick = () => {
+    box.hidden = true;
+    clearBackup(key);
+  };
+}
+
 async function openEditor(file: string | null) {
   if (!editor) makeEditor();
   show('editor');
@@ -913,9 +1068,11 @@ async function openEditor(file: string | null) {
     }
   }
   dirty = false;
+  lastBackup = '';
   updateToc();
   editorButtons();
   $<HTMLInputElement>('#ed-title').focus();
+  await offerBackup();
 }
 
 // 사이트 소개: 글과 같은 편집기를 쓰고, 글 정보와 삭제 버튼만 숨깁니다.
@@ -940,7 +1097,9 @@ async function openAbout() {
     toast((err as Error).message, true);
   }
   dirty = false;
+  lastBackup = '';
   updateToc();
+  await offerBackup();
 }
 
 $('#ed-title').addEventListener('input', () => (dirty = true));
@@ -986,6 +1145,7 @@ async function doSave(asDraft: boolean) {
     if (about) {
       await api('/api/about', { method: 'POST', body: JSON.stringify({ title: val('#ed-title'), body, images }) });
       dirty = false;
+      await clearBackup('about');
       $('#ed-state').textContent = '';
       toast('사이트 소개를 저장했어요. 1~2분 뒤 사이트에 반영돼요.');
       location.hash = returnTo;
@@ -1010,8 +1170,11 @@ async function doSave(asDraft: boolean) {
         },
       }),
     });
+    await clearBackup(backupKey());
+    if (res.file !== current.file) await clearBackup(res.file);
     current.file = res.file;
     dirty = false;
+    lastBackup = '';
     if (asDraft) {
       editor.commands.setContent(body);
       if (!val('#ed-title')) $<HTMLInputElement>('#ed-title').value = '(제목 없음)';
@@ -1163,7 +1326,7 @@ $('#ed-delete').addEventListener('click', async () => {
 });
 
 window.addEventListener('beforeunload', (e) => {
-  if (dirty) e.preventDefault();
+  if (dirty && !leaving) e.preventDefault();
 });
 
 // 링크 주소 정리: 이메일은 mailto:, 전화번호는 tel:, 도메인만 적으면 https:// 를 붙입니다.
@@ -1234,6 +1397,14 @@ setupNotice(api, toast);
     if (!s.configured) return show('setup');
     if (!s.loggedIn) return show('login');
     await loadAll();
+    booted = true;
+    // Google 로그인을 하고 돌아왔으면 쓰던 화면으로
+    try {
+      const back = localStorage.getItem(RESUME);
+      if (back && back !== location.hash) history.replaceState(null, '', location.pathname + back);
+    } catch {
+      /* 무시 */
+    }
     route();
   } catch {
     show('login');
