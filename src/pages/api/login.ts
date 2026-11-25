@@ -9,13 +9,17 @@ import {
   login,
   logout,
   passStepOne,
+  renew,
 } from '../../lib/server/auth';
 
 export const prerender = false;
 
-// 로그인 상태 확인
-export const GET: APIRoute = (ctx) =>
-  json({ configured: configured(), loggedIn: isLoggedIn(ctx), twoStep: googleConfigured() });
+// 로그인 상태 확인 (로그인돼 있으면 기한도 늘립니다. 글쓰기 화면이 열려 있는 동안 주기적으로 불러요.)
+export const GET: APIRoute = (ctx) => {
+  const loggedIn = isLoggedIn(ctx);
+  if (loggedIn) renew(ctx);
+  return json({ configured: configured(), loggedIn, twoStep: googleConfigured() });
+};
 
 // 1단계: 비밀번호. 2단계가 켜져 있고 기억된 브라우저가 아니면 Google 로그인으로 넘깁니다.
 export const POST: APIRoute = async (ctx) => {

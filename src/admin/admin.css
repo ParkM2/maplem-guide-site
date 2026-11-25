@@ -244,3 +244,12 @@ body.admin { min-height: 100vh; }
 #post-list li.dragging { position: relative; z-index: 1; background: var(--surface); box-shadow: 0 6px 20px rgba(0,0,0,.25); border-radius: 6px; opacity: .95; }
 #post-list li.dragging .drag { cursor: grabbing; }
 .order-bar { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
+
+/* 다시 로그인 창, 쓰던 글 되살리기 */
+.relogin { width: min(380px, calc(100% - 32px)); padding: 20px; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg); color: var(--ink); }
+.relogin::backdrop { background: rgb(0 0 0 / .45); }
+.relogin h2 { margin: 0; font-size: 18px; }
+.relogin .row { justify-content: flex-end; gap: 8px; }
+.relogin-err { margin: 0; color: #c92a2a; font-size: 14px; }
+.notice.restore { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; }
+.notice.restore[hidden] { display: none; }
